@@ -2,6 +2,7 @@ package com.example.integradora5d.models.aula_laboratorio;
 
 import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.campus.BeanCampus;
+import com.example.integradora5d.models.edificio.BeanEdificio;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -15,8 +16,8 @@ public class BeanAula {
 
     @ManyToOne
     @JoinColumn(name = "id_edificio")
-    private BeanCampus edificios;
+    private BeanEdificio edificio;
 
-    @OneToMany(mappedBy = "aula_laboratorio")
+    @OneToMany(mappedBy = "aula")
     private List<BeanActivo> activos;
 }

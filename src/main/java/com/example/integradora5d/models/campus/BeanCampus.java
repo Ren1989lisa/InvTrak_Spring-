@@ -15,5 +15,5 @@ public class BeanCampus {
     private String nombre;
 
     @OneToMany(mappedBy = "campus")
-    private List<BeanEdificio> edificios;
+    private List<BeanEdificio> edificio;
 }

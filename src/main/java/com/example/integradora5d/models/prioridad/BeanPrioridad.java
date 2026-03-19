@@ -16,7 +16,7 @@ public class BeanPrioridad {
     private Long id_prioridad;
 
     @Enumerated(EnumType.STRING)
-    private String nombre;
+    private ENUM_PRIORIDAD nombre;
 
 
     private String descripcion;
