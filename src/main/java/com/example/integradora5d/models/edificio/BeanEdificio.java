@@ -3,11 +3,19 @@ package com.example.integradora5d.models.edificio;
 import com.example.integradora5d.models.aula_laboratorio.BeanAula;
 import com.example.integradora5d.models.campus.BeanCampus;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
 @Entity
 @Table(name = "edificio")
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class BeanEdificio {
 
     @Id

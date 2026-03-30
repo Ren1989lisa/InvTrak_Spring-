@@ -4,12 +4,15 @@ import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.mantenimiento.BeanMantenimiento;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "solicitud_baja")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class BeanSolicitud {
 
     @Id
@@ -28,8 +31,6 @@ public class BeanSolicitud {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_mantenimiento")
     private BeanMantenimiento mantenimiento;
-
-
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_activo")

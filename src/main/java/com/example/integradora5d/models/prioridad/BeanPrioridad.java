@@ -3,12 +3,15 @@ package com.example.integradora5d.models.prioridad;
 import com.example.integradora5d.models.mantenimiento.BeanMantenimiento;
 import com.example.integradora5d.models.reporte_danio.BeanReporte; 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+
 import java.util.List;
 
 @Entity
 @Table(name = "prioridad")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class BeanPrioridad {
 
     @Id

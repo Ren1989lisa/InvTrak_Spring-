@@ -2,9 +2,17 @@ package com.example.integradora5d.models.checklist_resguardo;
 
 import com.example.integradora5d.models.resguardo.BeanResguardo;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "checklist_resguardo")
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class BeanChecklist {
 
     @Id

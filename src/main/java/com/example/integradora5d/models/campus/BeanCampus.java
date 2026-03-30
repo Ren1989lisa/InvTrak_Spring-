@@ -2,11 +2,19 @@ package com.example.integradora5d.models.campus;
 
 import com.example.integradora5d.models.edificio.BeanEdificio;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
 @Entity
 @Table(name = "campus")
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class BeanCampus {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

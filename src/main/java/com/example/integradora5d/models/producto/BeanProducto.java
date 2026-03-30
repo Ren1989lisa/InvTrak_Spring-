@@ -2,9 +2,19 @@ package com.example.integradora5d.models.producto;
 
 import com.example.integradora5d.models.modelo.BeanModelo;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
+@Entity
+@Table(name = "producto")
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class BeanProducto {
 
     @Id
@@ -14,8 +24,9 @@ public class BeanProducto {
     private String nombre;
     private String descripcion;
 
-    @OneToMany(mappedBy = "modelo")
-    private List<BeanModelo> modelo;
+    @ManyToOne
+    @JoinColumn(name = "id_modelo")
+    private BeanModelo modelo;
 
     @Enumerated
     private ENUM_ESTATUS_PRODUCTO estatus;

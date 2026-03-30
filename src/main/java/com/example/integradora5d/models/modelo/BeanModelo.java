@@ -1,8 +1,21 @@
 package com.example.integradora5d.models.modelo;
 
 import com.example.integradora5d.models.marca.BeanMarca;
+import com.example.integradora5d.models.producto.BeanProducto;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+import java.util.List;
+
+@Entity
+@Table(name = "modelo")
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class BeanModelo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -13,4 +26,7 @@ public class BeanModelo {
     @ManyToOne
     @JoinColumn(name = "id_marca")
     private BeanMarca marca;
+
+    @OneToMany(mappedBy = "modelo")
+    private List<BeanProducto> productos;
 }

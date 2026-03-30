@@ -3,12 +3,15 @@ package com.example.integradora5d.models.evidencia;
 import com.example.integradora5d.models.mantenimiento.BeanMantenimiento;
 import com.example.integradora5d.models.reporte_danio.BeanReporte;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "evidencia")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class BeanEvidencia {
 
     @Id
