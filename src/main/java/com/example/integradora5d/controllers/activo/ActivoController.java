@@ -41,4 +41,9 @@ public class ActivoController {
                                              @RequestBody UpdateActivoDTO dto) {
         return ResponseEntity.ok(activoService.update(id, dto));
     }
+
+    @GetMapping("/disponibles")
+    public ResponseEntity<List<BeanActivo>> getDisponibles() {
+        return ResponseEntity.ok(activoService.getDisponibles());
+    }
 }

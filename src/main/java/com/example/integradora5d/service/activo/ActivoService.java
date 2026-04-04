@@ -11,6 +11,7 @@ import com.example.integradora5d.models.edificio.BeanEdificio;
 import com.example.integradora5d.models.campus.BeanCampus;
 import com.example.integradora5d.models.producto.BeanProducto;
 import com.example.integradora5d.models.producto.ProductoRepository;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -120,5 +121,10 @@ public class ActivoService {
         }
 
         return activoRepository.save(activo);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BeanActivo> getDisponibles() {
+        return activoRepository.findByEstatus(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
     }
 }

@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -18,13 +19,16 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BeanHistorial {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id_historial;
 
     private String estatus_anterior;
     private String estatus_nuevo;
-    private String fecha_cambio;
+
+    private LocalDateTime fecha_cambio; 
+
     private String motivo;
 
     @ManyToOne

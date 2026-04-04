@@ -1,10 +1,16 @@
 package com.example.integradora5d.controllers.usuario;
 
 
+import com.example.integradora5d.dto.usuario.UpdateUsuarioDTO;
+import com.example.integradora5d.dto.usuario.UsuarioForClientDTO;
+import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.service.usuario.UsuarioService;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/usuario")
@@ -16,5 +22,29 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
+    @GetMapping("/tecnicos")
+    public ResponseEntity<List<BeanUsuario>> getTecnicos() {
+        return ResponseEntity.ok(usuarioService.getTecnicos());
+    }
 
+    // Ver perfil propio - cualquier usuario autenticado
+    @GetMapping("/perfil")
+    public ResponseEntity<UsuarioForClientDTO> getPerfil(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(usuarioService.getPerfil(userDetails.getUsername()));
+    }
+
+    // Admin edita cualquier usuario
+    @PutMapping("/{id}")
+    public ResponseEntity<BeanUsuario> update(@PathVariable Long id,
+                                              @RequestBody UpdateUsuarioDTO dto) {
+        return ResponseEntity.ok(usuarioService.update(id, dto));
+    }
+
+    // Admin elimina usuario
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        usuarioService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

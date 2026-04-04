@@ -15,6 +15,7 @@ import com.example.integradora5d.models.resguardo.BeanResguardo;
 import com.example.integradora5d.models.resguardo.ResguardoRepository;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
+import com.example.integradora5d.service.historial_activo.HistorialService;
 import com.example.integradora5d.service.notificacion.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class ResguardoService {
     private final EvidenciaRepository evidenciaRepository;
     private final ChecklistRepository checklistRepository;
     private final NotificacionService notificacionService;
+    private final HistorialService historialService;
 
     // Carpeta donde se guardan las fotos
     private static final String UPLOAD_DIR = "uploads/evidencias/";
@@ -48,13 +50,14 @@ public class ResguardoService {
                             UsuarioRepository usuarioRepository,
                             EvidenciaRepository evidenciaRepository,
                             ChecklistRepository checklistRepository,
-                            NotificacionService notificacionService) {
+                            NotificacionService notificacionService, HistorialService historialService) {
         this.resguardoRepository = resguardoRepository;
         this.activoRepository = activoRepository;
         this.usuarioRepository = usuarioRepository;
         this.evidenciaRepository = evidenciaRepository;
         this.checklistRepository = checklistRepository;
         this.notificacionService = notificacionService;
+        this.historialService = historialService;
     }
 
     // --- ADMIN: Asignar activo a empleado ---
@@ -66,6 +69,10 @@ public class ResguardoService {
 
         if (activo.getEstatus() != ENUM_ESTATUS_ACTIVO.DISPONIBLE) {
             throw new RuntimeException("El activo no está disponible");
+        }
+
+        if (activo.getEstatus() == ENUM_ESTATUS_ACTIVO.BAJA) {
+            throw new RuntimeException("El activo está dado de baja y no puede asignarse");
         }
 
         BeanUsuario usuario = usuarioRepository.findById(dto.getUsuarioId())
@@ -132,6 +139,14 @@ public class ResguardoService {
         resguardo.getActivo().setEstatus(ENUM_ESTATUS_ACTIVO.RESGUARDADO);
         activoRepository.save(resguardo.getActivo());
 
+        historialService.registrar(
+                resguardo.getActivo(),
+                "DISPONIBLE",
+                "RESGUARDADO",
+                "Resguardo confirmado por empleado",
+                resguardo.getUsuario()
+        );
+
         return resguardoRepository.save(resguardo);
     }
 
@@ -162,6 +177,14 @@ public class ResguardoService {
         resguardo.getActivo().setEstatus(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
         activoRepository.save(resguardo.getActivo());
 
+        historialService.registrar(
+                resguardo.getActivo(),
+                "RESGUARDADO",
+                "DISPONIBLE",
+                "Devolución de activo",
+                resguardo.getUsuario()
+        );
+
         return resguardoRepository.save(resguardo);
     }
 
@@ -186,4 +209,6 @@ public class ResguardoService {
             evidenciaRepository.save(evidencia);
         }
     }
+
+
 }

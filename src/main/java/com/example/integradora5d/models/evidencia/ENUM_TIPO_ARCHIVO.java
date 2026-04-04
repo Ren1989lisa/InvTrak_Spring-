@@ -5,5 +5,7 @@ public enum ENUM_TIPO_ARCHIVO {
     JPG,
     PNG,
     PDF,
-    DOCX
+    DOCX,
+    VIDEO,
+    IMAGEN
 }

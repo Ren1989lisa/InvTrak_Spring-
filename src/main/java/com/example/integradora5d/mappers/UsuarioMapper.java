@@ -46,4 +46,22 @@ public class UsuarioMapper {
             return dto;
         }).collect(Collectors.toList());
     }
+
+    public UsuarioForClientDTO usuarioToUsuarioDto(BeanUsuario usuario) {
+        UsuarioForClientDTO dto = new UsuarioForClientDTO();
+
+        dto.setIdUsuario(usuario.getIdUsuario());
+        dto.setNombre(usuario.getNombre());
+        dto.setCorreo(usuario.getCorreo());
+        dto.setCurp(usuario.getCurp());
+        dto.setNumeroEmpleado(usuario.getNumeroEmpleado());
+        dto.setArea(usuario.getArea());
+        dto.setEstatus(usuario.getEstatus());
+
+        if (usuario.getRol() != null) {
+            dto.setRol(usuario.getRol().getNombre());
+        }
+
+        return dto;
+    }
 }

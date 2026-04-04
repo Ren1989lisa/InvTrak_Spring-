@@ -2,6 +2,7 @@ package com.example.integradora5d.service.usuario;
 
 import com.example.integradora5d.dto.auth.ResetPasswordDTO;
 import com.example.integradora5d.dto.usuario.CreateUsuarioDto;
+import com.example.integradora5d.dto.usuario.UpdateUsuarioDTO;
 import com.example.integradora5d.dto.usuario.UsuarioForClientDTO;
 import com.example.integradora5d.error.errorTypes.CustomNotContentException;
 import com.example.integradora5d.mappers.UsuarioMapper;
@@ -152,5 +153,78 @@ public class UsuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         usuario.setTokenDispositivo(token);
         usuarioRepository.save(usuario);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BeanUsuario> getTecnicos() {
+        return usuarioRepository.findByRol_Nombre("TECNICO");
+    }
+
+    // Ver perfil propio
+    @Transactional(readOnly = true)
+    public UsuarioForClientDTO getPerfil(String correo) {
+        BeanUsuario usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        return usuarioMapper.usuarioToUsuarioDto(usuario);
+    }
+
+    // Admin edita cualquier usuario
+    @Transactional
+    public BeanUsuario update(Long id, UpdateUsuarioDTO dto) {
+        BeanUsuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (dto.getNombre() != null && !dto.getNombre().isBlank()) {
+            usuario.setNombre(dto.getNombre());
+        }
+
+        if (dto.getCorreo() != null && !dto.getCorreo().isBlank()) {
+            if (usuarioRepository.existsByCorreo(dto.getCorreo()) &&
+                    !dto.getCorreo().equals(usuario.getCorreo())) {
+                throw new RuntimeException("El correo ya está registrado");
+            }
+            usuario.setCorreo(dto.getCorreo());
+        }
+
+        if (dto.getFechaNacimiento() != null) {
+            usuario.setFechaNacimiento(dto.getFechaNacimiento());
+        }
+
+        if (dto.getCurp() != null && !dto.getCurp().isBlank()) {
+            if (usuarioRepository.existsByCurp(dto.getCurp()) &&
+                    !dto.getCurp().equals(usuario.getCurp())) {
+                throw new RuntimeException("La CURP ya está registrada");
+            }
+            usuario.setCurp(dto.getCurp());
+        }
+
+        if (dto.getRolId() != null) {
+            BeanRol rol = rolRepository.findById(dto.getRolId())
+                    .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+            usuario.setRol(rol);
+        }
+
+        if (dto.getArea() != null && !dto.getArea().isBlank()) {
+            usuario.setArea(dto.getArea());
+        }
+
+        return usuarioRepository.save(usuario);
+    }
+
+    // Admin elimina usuario
+    @Transactional
+    public void delete(Long id) {
+        BeanUsuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (usuarioRepository.tieneResguardos(id)) {
+            throw new RuntimeException("No se puede eliminar, el usuario tiene bienes asignados");
+        }
+
+        if (usuarioRepository.tieneMantenimientos(id)) {
+            throw new RuntimeException("No se puede eliminar, el usuario tiene mantenimientos asignados");
+        }
+
+        usuarioRepository.delete(usuario);
     }
 }
