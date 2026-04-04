@@ -9,4 +9,9 @@ import java.util.Optional;
 public interface UsuarioRepository extends JpaRepository<BeanUsuario, Long> {
 
     Optional<BeanUsuario> findByCorreo(String correo);
+
+    boolean existsByCorreo(String correo);
+    boolean existsByCurp(String curp);
+
+    long countByRolId(Long rolId);
 }

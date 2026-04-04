@@ -1,7 +1,7 @@
 package com.example.integradora5d.models.usuario;
 
-import com.example.integradora5d.auth.entity.PasswordResetToken;
 import com.example.integradora5d.models.historial_activo.BeanHistorial;
+import com.example.integradora5d.models.password_reset_token.BeanPasswordResetToken;
 import com.example.integradora5d.models.resguardo.BeanResguardo;
 import com.example.integradora5d.models.rol.BeanRol;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -46,6 +46,10 @@ public class BeanUsuario {
     private String area;
     private Boolean estatus = Boolean.TRUE;
 
+    private Boolean primerAcceso = Boolean.TRUE;
+
+    private String tokenDispositivo; // token FCM del móvil
+
     @ManyToOne
     @JoinColumn(name = "id_rol")
     private BeanRol rol;
@@ -55,7 +59,7 @@ public class BeanUsuario {
     private List<BeanResguardo> resguardos;
 
     @OneToMany(mappedBy = "usuario")
-    private List<PasswordResetToken>  tokens;
+    private List<BeanPasswordResetToken> tokens;
 
     @OneToMany(mappedBy = "usuario")
     @JsonIgnore

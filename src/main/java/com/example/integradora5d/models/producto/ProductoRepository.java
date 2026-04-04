@@ -1,9 +1,11 @@
 package com.example.integradora5d.models.producto;
 
-import com.example.integradora5d.models.usuario.BeanUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-@Repository
+import java.util.Optional;
+
 public interface ProductoRepository extends JpaRepository<BeanProducto, Long> {
+    boolean existsByNombre(String nombre);
+
+    Optional<BeanProducto> findByNombre(String nombre);
 }

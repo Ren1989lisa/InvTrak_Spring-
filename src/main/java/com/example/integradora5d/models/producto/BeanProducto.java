@@ -1,5 +1,6 @@
 package com.example.integradora5d.models.producto;
 
+import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.modelo.BeanModelo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -28,7 +29,9 @@ public class BeanProducto {
     @JoinColumn(name = "id_modelo")
     private BeanModelo modelo;
 
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     private ENUM_ESTATUS_PRODUCTO estatus;
 
+    @OneToMany(mappedBy = "producto")
+    private List<BeanActivo> activos;
 }

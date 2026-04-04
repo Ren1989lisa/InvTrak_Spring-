@@ -5,5 +5,6 @@ public enum ENUM_TIPO_EVIDENCIA {
     ANTES,
     DESPUES,
     REPORTE,
-    RESGUARDO
+    RESGUARDO,
+    DEVOLUCION
 }

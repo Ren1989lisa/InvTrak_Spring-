@@ -3,6 +3,7 @@ package com.example.integradora5d.models.resguardo;
 import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.aula_laboratorio.BeanAula;
 import com.example.integradora5d.models.checklist_resguardo.BeanChecklist;
+import com.example.integradora5d.models.evidencia.BeanEvidencia;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,7 @@ public class BeanResguardo {
     private Long idResguardo;
 
     private LocalDate fechaAsignacion;
+    private Boolean confirmado = false;
     private String observaciones;
     private LocalDate fechaDevolucion;
 
@@ -39,5 +41,8 @@ public class BeanResguardo {
     @ManyToOne
     @JoinColumn(name = "id_activo")
     private BeanActivo activo;
+
+    @OneToMany(mappedBy = "resguardo")
+    private List<BeanEvidencia> evidencias;
 
 }

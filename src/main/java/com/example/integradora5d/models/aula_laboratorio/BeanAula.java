@@ -22,6 +22,10 @@ public class BeanAula {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idAula;
 
+    private String nombre;
+
+    private String descripcion;
+
     @ManyToOne
     @JoinColumn(name = "id_edificio")
     private BeanEdificio edificio;

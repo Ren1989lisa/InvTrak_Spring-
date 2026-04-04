@@ -51,4 +51,8 @@ public class BeanActivo {
 
     @OneToMany(mappedBy = "activo")
     private List<BeanReporte> reportes;
+
+    @ManyToOne
+    @JoinColumn(name = "id_producto")
+    private BeanProducto producto;
 }

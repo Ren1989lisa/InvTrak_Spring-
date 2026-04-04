@@ -1,23 +1,25 @@
-package com.example.integradora5d.auth.entity;
+package com.example.integradora5d.models.password_reset_token;
 
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Data
-public class PasswordResetToken {
+@Getter
+@Setter
+public class BeanPasswordResetToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     private String token;
 
-    private LocalDateTime expiration;
+    private LocalDateTime fechaExpiracion;
 
     @ManyToOne
     @JoinColumn(name = "id_usuario")

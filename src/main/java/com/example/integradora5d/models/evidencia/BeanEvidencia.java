@@ -1,11 +1,14 @@
 package com.example.integradora5d.models.evidencia;
 
+import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.mantenimiento.BeanMantenimiento;
 import com.example.integradora5d.models.reporte_danio.BeanReporte;
+import com.example.integradora5d.models.resguardo.BeanResguardo;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "evidencia")
@@ -37,4 +40,8 @@ public class BeanEvidencia {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_reporte")
     private BeanReporte reporte;
+
+    @ManyToOne
+    @JoinColumn(name = "id_resguardo")
+    private BeanResguardo resguardo;
 }

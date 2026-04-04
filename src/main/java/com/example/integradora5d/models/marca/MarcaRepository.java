@@ -1,9 +1,10 @@
 package com.example.integradora5d.models.marca;
 
-import com.example.integradora5d.models.usuario.BeanUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-@Repository
+import java.util.Optional;
+
 public interface MarcaRepository extends JpaRepository<BeanMarca, Long> {
+    boolean existsByNombre(String nombre);
+    Optional<BeanMarca> findByNombre(String nombre);
 }
