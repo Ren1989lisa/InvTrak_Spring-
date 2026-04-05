@@ -1,5 +1,6 @@
 package com.example.integradora5d.service.notificacion;
 
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
@@ -9,6 +10,9 @@ import org.springframework.stereotype.Service;
 public class NotificacionService {
 
     public void enviarNotificacion(String tokenDispositivo, String titulo, String cuerpo) {
+        if (FirebaseApp.getApps().isEmpty()) {
+            return;
+        }
         try {
             Message message = Message.builder()
                     .setNotification(Notification.builder()

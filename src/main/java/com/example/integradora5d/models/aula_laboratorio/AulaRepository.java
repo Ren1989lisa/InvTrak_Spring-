@@ -1,7 +1,6 @@
 package com.example.integradora5d.models.aula_laboratorio;
 
 import com.example.integradora5d.models.edificio.BeanEdificio;
-import com.example.integradora5d.models.usuario.BeanUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,5 +12,6 @@ public interface AulaRepository extends JpaRepository<BeanAula, Long> {
     Optional<BeanAula> findByNombreAndEdificio_IdEdificio(String nombre, Long edificioId);
     List<BeanAula> findByEdificio_IdEdificio(Long edificioId);
     boolean existsByEdificio(BeanEdificio edificio);
-    boolean existsByCampusViaEdificio(Long campusId);
+
+    boolean existsByEdificio_Campus_IdCampus(Long idCampus);
 }
