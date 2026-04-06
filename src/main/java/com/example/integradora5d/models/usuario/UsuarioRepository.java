@@ -16,7 +16,8 @@ public interface UsuarioRepository extends JpaRepository<BeanUsuario, Long> {
     boolean existsByCorreo(String correo);
     boolean existsByCurp(String curp);
 
-    long countByRolId(Long rolId);
+    @Query("SELECT COUNT(u) FROM BeanUsuario u WHERE u.rol.idRol = :rolId")
+    long countByRolId(@Param("rolId") Long rolId);
 
     List<BeanUsuario> findByRol_Nombre(String rolNombre);
 

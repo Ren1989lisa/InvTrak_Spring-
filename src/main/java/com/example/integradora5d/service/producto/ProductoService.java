@@ -58,7 +58,7 @@ public class ProductoService {
 
         // 2. Resolver modelo (único por marca)
         BeanModelo modelo = modeloRepository
-                .findByNombreAndMarca_Id_marca(dto.getModeloNombre(), marca.getId_marca())
+                .findByNombreAndMarcaId(dto.getModeloNombre(), marca.getId_marca())
                 .orElseGet(() -> {
                     BeanModelo nuevo = new BeanModelo();
                     nuevo.setNombre(dto.getModeloNombre());

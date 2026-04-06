@@ -180,7 +180,7 @@ public class MantenimientoService {
         }
 
         boolean tieneEvidencia = evidenciaRepository
-                .existsByMantenimiento_Id_mantenimiento(mantenimiento.getId_mantenimiento());
+                .existsByMantenimientoId(mantenimiento.getId_mantenimiento());
 
         if (!tieneEvidencia) {
             throw new RuntimeException("Debe existir evidencia antes de cerrar");

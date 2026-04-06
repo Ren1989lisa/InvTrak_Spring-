@@ -5,6 +5,7 @@ import com.example.integradora5d.models.aula_laboratorio.BeanAula;
 import com.example.integradora5d.models.checklist_resguardo.BeanChecklist;
 import com.example.integradora5d.models.evidencia.BeanEvidencia;
 import com.example.integradora5d.models.usuario.BeanUsuario;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -43,6 +44,7 @@ public class BeanResguardo {
     private BeanActivo activo;
 
     @OneToMany(mappedBy = "resguardo")
+    @JsonIgnore
     private List<BeanEvidencia> evidencias;
 
 }

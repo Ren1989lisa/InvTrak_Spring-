@@ -85,13 +85,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/resguardo/verificar/**").authenticated()
                         .requestMatchers("/api/resguardo/confirmar").authenticated()
                         .requestMatchers("/api/resguardo/devolver").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/resguardo").hasRole("ADMIN")
-                        .requestMatchers("/api/historial/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/usuario").hasRole("ADMIN")
-                        .requestMatchers("/api/dashboard/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/resguardo").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/api/historial/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/usuario").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.GET, "/api/usuario/perfil").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/usuario/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/usuario/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/usuario/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/usuario/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated());
         return http.build();
     }

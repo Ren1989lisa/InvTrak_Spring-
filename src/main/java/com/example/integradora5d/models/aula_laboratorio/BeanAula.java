@@ -3,6 +3,7 @@ package com.example.integradora5d.models.aula_laboratorio;
 import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.campus.BeanCampus;
 import com.example.integradora5d.models.edificio.BeanEdificio;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -31,5 +32,6 @@ public class BeanAula {
     private BeanEdificio edificio;
 
     @OneToMany(mappedBy = "aula")
+    @JsonIgnore
     private List<BeanActivo> activos;
 }

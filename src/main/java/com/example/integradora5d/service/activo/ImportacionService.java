@@ -100,7 +100,7 @@ public class ImportacionService {
 
                     // Resolver o crear modelo
                     BeanModelo modelo = modeloRepository
-                            .findByNombreAndMarca_Id_marca(modeloNombre, marca.getId_marca())
+                            .findByNombreAndMarcaId(modeloNombre, marca.getId_marca())
                             .orElseGet(() -> {
                                 BeanModelo nuevo = new BeanModelo();
                                 nuevo.setNombre(modeloNombre);

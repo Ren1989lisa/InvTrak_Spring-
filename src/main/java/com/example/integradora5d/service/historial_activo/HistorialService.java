@@ -36,15 +36,13 @@ public class HistorialService {
         historialRepository.save(historial);
     }
 
-    // Admin: ver toodo el historial
     @Transactional(readOnly = true)
     public List<BeanHistorial> getAll() {
-        return historialRepository.findAllByOrderByFecha_cambioDesc();
+        return historialRepository.findAllOrdenado();
     }
 
-    // Admin: ver historial por activo
     @Transactional(readOnly = true)
     public List<BeanHistorial> getByActivo(Long activoId) {
-        return historialRepository.findByActivo_IdActivoOrderByFecha_cambioDesc(activoId);
+        return historialRepository.findByActivoId(activoId);
     }
 }

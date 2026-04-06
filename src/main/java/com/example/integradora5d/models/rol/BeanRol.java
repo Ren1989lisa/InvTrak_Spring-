@@ -2,6 +2,7 @@ package com.example.integradora5d.models.rol;
 
 
 import com.example.integradora5d.models.usuario.BeanUsuario;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,5 +24,6 @@ public class BeanRol {
     private String nombre;
 
     @OneToMany(mappedBy = "rol")
+    @JsonIgnore
     private List<BeanUsuario> usuarios;
 }

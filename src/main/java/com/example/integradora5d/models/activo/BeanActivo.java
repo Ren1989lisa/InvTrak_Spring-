@@ -6,6 +6,7 @@ import com.example.integradora5d.models.producto.BeanProducto;
 import com.example.integradora5d.models.reporte_danio.BeanReporte;
 import com.example.integradora5d.models.resguardo.BeanResguardo;
 import com.example.integradora5d.models.solicitud_baja.BeanSolicitud;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -41,15 +42,19 @@ public class BeanActivo {
     private BeanAula aula;
 
     @OneToMany(mappedBy = "activo")
+    @JsonIgnore
     private List<BeanResguardo> resguardos;
 
     @OneToMany(mappedBy = "activo")
+    @JsonIgnore
     private List<BeanHistorial> historiales;
 
     @OneToMany(mappedBy = "activo")
+    @JsonIgnore
     private List<BeanSolicitud> solicitudes;
 
     @OneToMany(mappedBy = "activo")
+    @JsonIgnore
     private List<BeanReporte> reportes;
 
     @ManyToOne

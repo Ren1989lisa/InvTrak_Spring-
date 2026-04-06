@@ -59,6 +59,7 @@ public class BeanUsuario {
     private List<BeanResguardo> resguardos;
 
     @OneToMany(mappedBy = "usuario")
+    @JsonIgnore
     private List<BeanPasswordResetToken> tokens;
 
     @OneToMany(mappedBy = "usuario")

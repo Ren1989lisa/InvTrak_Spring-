@@ -1,6 +1,7 @@
 package com.example.integradora5d.models.marca;
 
 import com.example.integradora5d.models.modelo.BeanModelo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,5 +24,6 @@ public class BeanMarca {
     private String nombre;
 
     @OneToMany(mappedBy = "marca")
+    @JsonIgnore
     private List<BeanModelo> modelos;
 }

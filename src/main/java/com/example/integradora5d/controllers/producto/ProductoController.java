@@ -48,7 +48,7 @@ public class ProductoController {
     // Para cargar modelos según la marca seleccionada
     @GetMapping("/modelos/{marcaId}")
     public ResponseEntity<List<BeanModelo>> getModelosByMarca(@PathVariable Long marcaId) {
-        return ResponseEntity.ok(modeloRepository.findByMarca_Id_marca(marcaId));
+        return ResponseEntity.ok(modeloRepository.findByMarcaId(marcaId));
     }
 
     @PutMapping("/{id}")

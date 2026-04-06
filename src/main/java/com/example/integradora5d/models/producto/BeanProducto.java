@@ -2,6 +2,7 @@ package com.example.integradora5d.models.producto;
 
 import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.modelo.BeanModelo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -33,5 +34,6 @@ public class BeanProducto {
     private ENUM_ESTATUS_PRODUCTO estatus;
 
     @OneToMany(mappedBy = "producto")
+    @JsonIgnore
     private List<BeanActivo> activos;
 }
