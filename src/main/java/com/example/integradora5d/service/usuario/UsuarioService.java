@@ -231,4 +231,28 @@ public class UsuarioService {
 
         usuarioRepository.delete(usuario);
     }
+
+    @Transactional
+    public void solicitarRecuperacion(String correo) {
+        // Buscar el usuario
+        BeanUsuario usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new RuntimeException("No existe un usuario con el correo: " + correo));
+
+        // Limpiar tokens anteriores
+        tokenRepository.deleteByUsuario(usuario);
+
+        // Generar nuevo token con expiración de 15 minutos
+        String token = UUID.randomUUID().toString();
+
+        BeanPasswordResetToken resetToken = new BeanPasswordResetToken();
+        resetToken.setToken(token);
+        resetToken.setUsuario(usuario);
+        resetToken.setFechaExpiracion(LocalDateTime.now().plusMinutes(15));
+
+        tokenRepository.save(resetToken);
+
+        // Enviar el correo con el nuevo link
+        String link = "http://localhost:8085/api/auth/reset-password?token=" + token;
+        emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
+    }
 }

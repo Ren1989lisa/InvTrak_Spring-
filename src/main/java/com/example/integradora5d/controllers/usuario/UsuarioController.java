@@ -2,6 +2,7 @@ package com.example.integradora5d.controllers.usuario;
 
 
 import com.example.integradora5d.dto.usuario.CreateUsuarioDto;
+import com.example.integradora5d.dto.usuario.ForgotPasswordDTO;
 import com.example.integradora5d.dto.usuario.UpdateUsuarioDTO;
 import com.example.integradora5d.dto.usuario.UsuarioForClientDTO;
 import com.example.integradora5d.error.errorTypes.CustomNotContentException;

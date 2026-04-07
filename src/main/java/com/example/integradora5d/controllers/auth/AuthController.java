@@ -3,6 +3,7 @@ package com.example.integradora5d.controllers.auth;
 import com.example.integradora5d.dto.auth.LoginRequestDTO;
 import com.example.integradora5d.dto.auth.LoginResponseDTO;
 import com.example.integradora5d.dto.auth.ResetPasswordDTO;
+import com.example.integradora5d.dto.usuario.ForgotPasswordDTO;
 import com.example.integradora5d.service.auth.AuthService;
 import com.example.integradora5d.service.usuario.UsuarioService;
 import org.springframework.http.ResponseEntity;
@@ -43,5 +44,11 @@ public class AuthController {
                                                @AuthenticationPrincipal UserDetails userDetails) {
         usuarioService.guardarTokenDispositivo(userDetails.getUsername(), body.get("token"));
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> solicitarRecuperacion(@RequestBody ForgotPasswordDTO dto) {
+        usuarioService.solicitarRecuperacion(dto.getCorreo());
+        return ResponseEntity.ok("Enlace enviado");
     }
 }
