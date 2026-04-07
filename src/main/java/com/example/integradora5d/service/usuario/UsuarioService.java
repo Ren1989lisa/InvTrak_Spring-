@@ -120,31 +120,35 @@ public class UsuarioService {
     @Transactional
     public void resetPassword(ResetPasswordDTO dto) {
 
-        // Validar contraseñas iguales
+        // 1. Validar que las contraseñas coincidan antes de cualquier operación de BD
         if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
-            throw new RuntimeException("Las contraseñas no coinciden");
+            throw new IllegalArgumentException("Las contraseñas no coinciden");
         }
 
-        // Buscar token
+        // 2. Buscar token
         BeanPasswordResetToken resetToken = tokenRepository.findByToken(dto.getToken())
-                .orElseThrow(() -> new RuntimeException("Token inválido"));
+                .orElseThrow(() -> new RuntimeException("Token inválido o no encontrado"));
 
-        // Validar expiración
+        // 3. Validar expiración
         if (resetToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expirado");
+            // Opcional: eliminar el token expirado aquí
+            tokenRepository.delete(resetToken);
+            throw new RuntimeException("El enlace de recuperación ha expirado");
         }
 
-        // Obtener usuario
+        // 4. Obtener y actualizar usuario
         BeanUsuario usuario = resetToken.getUsuario();
 
-        // Actualizar contraseña
-        usuario.setPassword(passwordEncoder.encode(dto.getNewPassword()));
-
-        // Eliminar token (uso único)
-        tokenRepository.delete(resetToken);
-
+        // Encriptar la nueva contraseña
+        String encodedPassword = passwordEncoder.encode(dto.getNewPassword());
+        usuario.setPassword(encodedPassword);
         usuario.setPrimerAcceso(false);
+
+        // 5. Persistir cambios
         usuarioRepository.save(usuario);
+
+        // 6. Eliminar token (Asegura que el enlace sea de un solo uso)
+        tokenRepository.delete(resetToken);
     }
 
     @Transactional
