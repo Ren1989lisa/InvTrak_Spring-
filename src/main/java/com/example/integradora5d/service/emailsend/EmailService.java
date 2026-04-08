@@ -18,11 +18,11 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(correo);
-            helper.setSubject("Activa tu cuenta");
+            helper.setSubject("Cambio de contraseña");
 
             String html = """
                 <div style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2 style="color: #2c3e50;">Activa tu cuenta</h2>
+                    <h2 style="color: #2c3e50;">Cambio de contraseña</h2>
                     <p>Hola,</p>
                     <p>Haz clic en el siguiente botón para establecer tu contraseña:</p>
                     
