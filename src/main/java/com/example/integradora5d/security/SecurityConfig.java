@@ -80,6 +80,8 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST,"/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/activo/**").permitAll()//pruebas
+                        .requestMatchers(HttpMethod.GET, "/api/usuario/**").permitAll()//pruebas
 
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/resguardo/verificar/**").authenticated()
@@ -97,4 +99,5 @@ public class SecurityConfig {
                         .anyRequest().authenticated());
         return http.build();
     }
+
 }

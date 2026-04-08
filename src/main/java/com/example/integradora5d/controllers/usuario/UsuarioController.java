@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.core.Authentication;
 import java.util.List;
 
 @RestController
@@ -51,7 +51,11 @@ public class UsuarioController {
         usuarioService.delete(id);
         return ResponseEntity.noContent().build();
     }
-
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioForClientDTO> getPerfilActual(Authentication auth) {
+        String correo = auth.getName();
+        return ResponseEntity.ok(usuarioService.getPerfil(correo));
+    }
     @PostMapping
     public ResponseEntity<BeanUsuario> create(@Valid @RequestBody CreateUsuarioDto dto) {
         return new ResponseEntity<>(usuarioService.createUsuario(dto), HttpStatus.CREATED);
