@@ -95,7 +95,8 @@ public class UsuarioService {
 
         usuario.setEstatus(true);
 
-        usuario.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        usuario.setPassword(passwordEncoder.encode("contra"));
+        //UUID.randomUUID().toString()
 
         usuario.setNumeroEmpleado(generarNumeroEmpleado(dto.getCurp(), dto.getRolId()));
 
@@ -111,7 +112,7 @@ public class UsuarioService {
         tokenRepository.save(resetToken);
 
         String link = "http://localhost:8085/api/auth/reset-password?token=" + token;
-
+        //hacerlo en segundo plano
         emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
 
         return usuario;

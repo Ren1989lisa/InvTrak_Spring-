@@ -79,8 +79,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/auth/login").permitAll()
+
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/resguardo/verificar/**").authenticated()
                         .requestMatchers("/api/resguardo/confirmar").authenticated()
@@ -92,6 +92,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/usuario/perfil").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/usuario/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/usuario/**").hasRole("ADMINISTRADOR")
+
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated());
         return http.build();
     }
