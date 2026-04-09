@@ -82,6 +82,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,"/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/activo/**").permitAll()//pruebas
                         .requestMatchers(HttpMethod.GET, "/api/usuario/**").permitAll()//pruebas
+                        .requestMatchers("/api/producto/**").permitAll()//pruebas
+                        .requestMatchers(HttpMethod.GET, "/api/ubicacion/**").permitAll()//pruebas
 
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/resguardo/verificar/**").authenticated()
@@ -89,11 +91,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/resguardo/devolver").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/resguardo").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/historial/**").hasRole("ADMINISTRADOR")
-                        .requestMatchers(HttpMethod.POST, "/api/usuario").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/usuario").permitAll()
                         .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.GET, "/api/usuario/perfil").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/usuario/**").hasRole("ADMINISTRADOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/usuario/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/usuario/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/usuario/**").permitAll()
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated());

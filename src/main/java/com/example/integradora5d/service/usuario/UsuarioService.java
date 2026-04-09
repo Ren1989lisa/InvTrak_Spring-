@@ -31,6 +31,7 @@ public class UsuarioService {
     private final RolRepository rolRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final EmailService emailService;
+    private final com.example.integradora5d.models.historial_activo.HistorialRepository historialRepository;
 
     private void validarCurpConDatos(String curp, String nombre, LocalDate fechaNacimiento) {
         // Los primeros 4 caracteres vienen del nombre/apellidos
@@ -53,13 +54,17 @@ public class UsuarioService {
     public UsuarioService(UsuarioRepository usuarioRepository,
                           UsuarioMapper usuarioMapper,
                           PasswordEncoder passwordEncoder,
-                          RolRepository rolRepository, PasswordResetTokenRepository tokenRepository, EmailService emailService) {
+                          RolRepository rolRepository, 
+                          PasswordResetTokenRepository tokenRepository, 
+                          EmailService emailService,
+                          com.example.integradora5d.models.historial_activo.HistorialRepository historialRepository) {
         this.usuarioRepository = usuarioRepository;
         this.usuarioMapper = usuarioMapper;
         this.passwordEncoder = passwordEncoder;
         this.rolRepository = rolRepository;
         this.tokenRepository = tokenRepository;
         this.emailService = emailService;
+        this.historialRepository = historialRepository;
     }
 
     @Transactional(readOnly = true)
@@ -113,7 +118,7 @@ public class UsuarioService {
 
         String link = "http://localhost:8085/api/auth/reset-password?token=" + token;
         //hacerlo en segundo plano
-        emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
+        //emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
 
         return usuario;
     }
@@ -225,6 +230,10 @@ public class UsuarioService {
         if (usuarioRepository.tieneMantenimientos(id)) {
             throw new RuntimeException("No se puede eliminar, el usuario tiene mantenimientos asignados");
         }
+
+        // Eliminar registros relacionados para evitar errores de FK
+        tokenRepository.deleteByUsuarioId(id);
+        historialRepository.deleteByUsuarioId(id);
 
         usuarioRepository.delete(usuario);
     }
