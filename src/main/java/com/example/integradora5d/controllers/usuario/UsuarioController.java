@@ -1,6 +1,5 @@
 package com.example.integradora5d.controllers.usuario;
 
-
 import com.example.integradora5d.dto.usuario.CreateUsuarioDto;
 import com.example.integradora5d.dto.usuario.UpdateUsuarioDTO;
 import com.example.integradora5d.dto.usuario.UsuarioForClientDTO;
@@ -10,32 +9,37 @@ import com.example.integradora5d.service.usuario.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/usuario")
 @CrossOrigin(origins = "*")
 public class UsuarioController {
-    private UsuarioService usuarioService;
+
+    private final UsuarioService usuarioService;
 
     public UsuarioController(UsuarioService usuarioService) {
         this.usuarioService = usuarioService;
     }
 
+    // Listar técnicos
     @GetMapping("/tecnicos")
     public ResponseEntity<List<BeanUsuario>> getTecnicos() {
         return ResponseEntity.ok(usuarioService.getTecnicos());
     }
 
-    // Ver perfil propio - cualquier usuario autenticado
+    /**
+     * Ver perfil propio - cualquier usuario autenticado.
+     * Se cambió @AuthenticationPrincipal UserDetails por Principal para evitar el error EOFException
+     * causado por fallos en la inyección de tipos en el contexto de seguridad.
+     */
     @GetMapping("/perfil")
-    public ResponseEntity<UsuarioForClientDTO> getPerfil(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(usuarioService.getPerfil(userDetails.getUsername()));
+    public ResponseEntity<UsuarioForClientDTO> getPerfil(Principal principal) {
+        // principal.getName() obtiene el subject (email) configurado en el JwtAuthenticationFilter
+        return ResponseEntity.ok(usuarioService.getPerfil(principal.getName()));
     }
 
     // Admin edita cualquier usuario
@@ -52,11 +56,13 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+    // Crear nuevo usuario (Admin)
     @PostMapping
     public ResponseEntity<BeanUsuario> create(@Valid @RequestBody CreateUsuarioDto dto) {
         return new ResponseEntity<>(usuarioService.createUsuario(dto), HttpStatus.CREATED);
     }
 
+    // Obtener todos los usuarios (Admin)
     @GetMapping
     public ResponseEntity<List<UsuarioForClientDTO>> getAll() throws CustomNotContentException {
         return ResponseEntity.ok(usuarioService.getUsuarios());
