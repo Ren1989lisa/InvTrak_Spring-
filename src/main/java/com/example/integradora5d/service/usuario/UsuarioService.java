@@ -76,42 +76,41 @@ public class UsuarioService {
     @Transactional
     public BeanUsuario createUsuario(CreateUsuarioDto dto) {
 
+        //Validaciones
         if (usuarioRepository.existsByCorreo(dto.getCorreo())) {
             throw new RuntimeException("El correo ya está registrado");
         }
-
         if (usuarioRepository.existsByCurp(dto.getCurp())) {
             throw new RuntimeException("La CURP ya está registrada");
         }
 
+        // Mapeo y asignación
         BeanUsuario usuario = usuarioMapper.toEntity(dto);
-
         BeanRol rol = rolRepository.findById(dto.getRolId())
                 .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
 
         usuario.setRol(rol);
-
         usuario.setPrimerAcceso(true);
-
         usuario.setEstatus(true);
 
+        // Contraseña aleatoria y segura
         usuario.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-
         usuario.setNumeroEmpleado(generarNumeroEmpleado(dto.getCurp(), dto.getRolId()));
 
+        // Guardado
         usuarioRepository.save(usuario);
 
+        //Creación del Token
         String token = UUID.randomUUID().toString();
-
         BeanPasswordResetToken resetToken = new BeanPasswordResetToken();
         resetToken.setToken(token);
         resetToken.setUsuario(usuario);
-        resetToken.setFechaExpiracion(LocalDateTime.now().plusHours(24));
+        resetToken.setFechaExpiracion(LocalDateTime.now().plusMinutes(15));
 
         tokenRepository.save(resetToken);
 
+        // 5. Envío Asíncrono
         String link = "http://localhost:8085/api/auth/reset-password?token=" + token;
-
         emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
 
         return usuario;
@@ -120,23 +119,23 @@ public class UsuarioService {
     @Transactional
     public void resetPassword(ResetPasswordDTO dto) {
 
-        // 1. Validar que las contraseñas coincidan antes de cualquier operación de BD
+        // Validar que las contraseñas coincidan antes de cualquier operación de BD
         if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
             throw new IllegalArgumentException("Las contraseñas no coinciden");
         }
 
-        // 2. Buscar token
+        // Buscar token
         BeanPasswordResetToken resetToken = tokenRepository.findByToken(dto.getToken())
                 .orElseThrow(() -> new RuntimeException("Token inválido o no encontrado"));
 
-        // 3. Validar expiración
+        // Validar expiración
         if (resetToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
             // Opcional: eliminar el token expirado aquí
             tokenRepository.delete(resetToken);
             throw new RuntimeException("El enlace de recuperación ha expirado");
         }
 
-        // 4. Obtener y actualizar usuario
+        // Obtener y actualizar usuario
         BeanUsuario usuario = resetToken.getUsuario();
 
         // Encriptar la nueva contraseña
@@ -144,10 +143,10 @@ public class UsuarioService {
         usuario.setPassword(encodedPassword);
         usuario.setPrimerAcceso(false);
 
-        // 5. Persistir cambios
+        // Persistir cambios
         usuarioRepository.save(usuario);
 
-        // 6. Eliminar token (Asegura que el enlace sea de un solo uso)
+        // Eliminar token (Asegura que el enlace sea de un solo uso)
         tokenRepository.delete(resetToken);
     }
 
