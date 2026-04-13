@@ -38,6 +38,7 @@ public class UsuarioMapper {
             dto.setNumeroEmpleado(usuario.getNumeroEmpleado());
             dto.setArea(usuario.getArea());
             dto.setEstatus(usuario.getEstatus());
+            dto.setFechaNacimiento(usuario.getFechaNacimiento());
 
             if (usuario.getRol() != null) {
                 dto.setRol(usuario.getRol().getNombre());
@@ -57,6 +58,7 @@ public class UsuarioMapper {
         dto.setNumeroEmpleado(usuario.getNumeroEmpleado());
         dto.setArea(usuario.getArea());
         dto.setEstatus(usuario.getEstatus());
+        dto.setFechaNacimiento(usuario.getFechaNacimiento());
 
         if (usuario.getRol() != null) {
             dto.setRol(usuario.getRol().getNombre());

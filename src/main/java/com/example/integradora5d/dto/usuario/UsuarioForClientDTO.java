@@ -14,11 +14,10 @@ public class UsuarioForClientDTO {
     private String correo;
     private String numeroEmpleado;
     private String area;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate fechaNacimiento;
-
     private Boolean estatus;
     private String curp;
     private String rol;
+
 }
