@@ -25,7 +25,7 @@ public class EmailService {
             String html = """
                     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #d1d9e0; border-radius: 8px; overflow: hidden;">
                         <div style="background-color: #1a5276; padding: 20px; text-align: center;">
-                            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Activación de Cuenta</h1>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Cambio de contraseña</h1>
                         </div>
                     
                         <div style="padding: 30px; background-color: #ffffff;">
