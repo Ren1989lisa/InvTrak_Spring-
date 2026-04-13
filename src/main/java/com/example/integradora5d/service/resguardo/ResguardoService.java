@@ -3,6 +3,7 @@ package com.example.integradora5d.service.resguardo;
 import com.example.integradora5d.dto.resguardo.ConfirmarResguardoDTO;
 import com.example.integradora5d.dto.resguardo.CreateResguardoDTO;
 import com.example.integradora5d.dto.resguardo.DevolucionDTO;
+import com.example.integradora5d.dto.resguardo.ResguardoUpdateDTO;
 import com.example.integradora5d.models.activo.ActivoRepository;
 import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.activo.ENUM_ESTATUS_ACTIVO;
@@ -17,9 +18,11 @@ import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
 import com.example.integradora5d.service.historial_activo.HistorialService;
 import com.example.integradora5d.service.notificacion.NotificacionService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.File;
 import java.io.IOException;
@@ -186,6 +189,97 @@ public class ResguardoService {
         );
 
         return resguardoRepository.save(resguardo);
+    }
+
+    /**
+     * Lista resguardos: ADMINISTRADOR ve todos; el resto solo los propios.
+     */
+    @Transactional(readOnly = true)
+    public List<BeanResguardo> listar(String correoAutenticado) {
+        BeanUsuario actor = usuarioRepository.findByCorreo(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+        boolean isAdmin = actor.getRol() != null && "ADMINISTRADOR".equals(actor.getRol().getNombre());
+        if (isAdmin) {
+            return resguardoRepository.findAllByOrderByIdResguardoDesc();
+        }
+        return resguardoRepository.findByUsuario_IdUsuarioOrderByIdResguardoDesc(actor.getIdUsuario());
+    }
+
+    /** Consulta un resguardo por ID (titular del resguardo o ADMINISTRADOR). */
+    @Transactional(readOnly = true)
+    public BeanResguardo obtenerPorId(Long id, String correoAutenticado) {
+        BeanUsuario actor = usuarioRepository.findByCorreo(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+        BeanResguardo resguardo = resguardoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
+        assertTitularOAdmin(resguardo, actor);
+        return resguardo;
+    }
+
+    /**
+     * Actualización parcial por ID (REST PUT con semántica de patch: solo campos presentes en el JSON).
+     * Respuesta: misma entidad que POST/GET de resguardo ({@link BeanResguardo} serializada a JSON).
+     */
+    @Transactional
+    public BeanResguardo actualizar(Long id, ResguardoUpdateDTO dto, String correoAutenticado) {
+        BeanUsuario actor = usuarioRepository.findByCorreo(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+
+        BeanResguardo resguardo = resguardoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
+
+        assertTitularOAdmin(resguardo, actor);
+
+        boolean isAdmin = actor.getRol() != null && "ADMINISTRADOR".equals(actor.getRol().getNombre());
+
+        if (!isAdmin && dto.getEstado() != null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo un administrador puede modificar el estado del activo");
+        }
+
+        if (dto.getObservaciones() != null) {
+            resguardo.setObservaciones(dto.getObservaciones());
+        }
+
+        if (dto.getConfirmado() != null) {
+            boolean antes = Boolean.TRUE.equals(resguardo.getConfirmado());
+            resguardo.setConfirmado(dto.getConfirmado());
+            if (Boolean.TRUE.equals(dto.getConfirmado()) && !antes) {
+                BeanActivo activo = resguardo.getActivo();
+                if (activo == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resguardo sin activo asociado");
+                }
+                String anterior = activo.getEstatus() != null ? activo.getEstatus().name() : "";
+                activo.setEstatus(ENUM_ESTATUS_ACTIVO.RESGUARDADO);
+                activoRepository.save(activo);
+                historialService.registrar(activo, anterior, "RESGUARDADO",
+                        "Resguardo confirmado (API)", resguardo.getUsuario());
+            }
+        }
+
+        if (isAdmin && dto.getEstado() != null) {
+            BeanActivo activo = resguardo.getActivo();
+            if (activo == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resguardo sin activo asociado");
+            }
+            String anterior = activo.getEstatus() != null ? activo.getEstatus().name() : "";
+            activo.setEstatus(dto.getEstado());
+            activoRepository.save(activo);
+            historialService.registrar(activo, anterior, dto.getEstado().name(),
+                    "Actualización de estatus del activo (resguardo)", actor);
+        }
+
+        return resguardoRepository.save(resguardo);
+    }
+
+    private void assertTitularOAdmin(BeanResguardo resguardo, BeanUsuario actor) {
+        boolean isAdmin = actor.getRol() != null && "ADMINISTRADOR".equals(actor.getRol().getNombre());
+        boolean esTitular = resguardo.getUsuario() != null
+                && resguardo.getUsuario().getIdUsuario().equals(actor.getIdUsuario());
+        if (!isAdmin && !esTitular) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "No tienes permiso para acceder a este resguardo");
+        }
     }
 
     // --- Helper: guardar fotos en disco ---

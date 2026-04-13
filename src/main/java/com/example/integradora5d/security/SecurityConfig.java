@@ -86,10 +86,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/resguardo/confirmar").authenticated()
                         .requestMatchers("/api/resguardo/devolver").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/resguardo").hasRole("ADMINISTRADOR")
+
+                        // GET/PUT /api/resguardo/{id}: autenticado; autorización en ResguardoService
+                        .requestMatchers(HttpMethod.GET, "/api/resguardo/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/resguardo/**").authenticated()
                         .requestMatchers("/api/historial/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/api/usuario").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.GET, "/api/usuario/perfil").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/usuario/me").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/usuario/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/usuario/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated());

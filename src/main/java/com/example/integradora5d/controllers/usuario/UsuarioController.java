@@ -11,10 +11,9 @@ import com.example.integradora5d.service.usuario.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -34,9 +33,14 @@ public class UsuarioController {
 
     // Ver perfil propio - cualquier usuario autenticado
     @GetMapping("/perfil")
-    public ResponseEntity<UsuarioForClientDTO> getPerfil(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(usuarioService.getPerfil(userDetails.getUsername()));
+    public ResponseEntity<UsuarioForClientDTO> getPerfil(Principal principal) {
+        return ResponseEntity.ok(usuarioService.getPerfil(principal.getName()));
+    }
+
+    // Alias para frontend: /me (evita chocar con /{id})
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioForClientDTO> getMe(Principal principal) {
+        return ResponseEntity.ok(usuarioService.getPerfil(principal.getName()));
     }
 
     // Admin edita cualquier usuario

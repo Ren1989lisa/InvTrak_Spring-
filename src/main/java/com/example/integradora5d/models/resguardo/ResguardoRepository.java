@@ -6,5 +6,10 @@ import java.util.Optional;
 
 public interface ResguardoRepository extends JpaRepository<BeanResguardo, Long> {
     List<BeanResguardo> findByUsuario_IdUsuario(Long usuarioId);
+
+    List<BeanResguardo> findByUsuario_IdUsuarioOrderByIdResguardoDesc(Long usuarioId);
+
+    List<BeanResguardo> findAllByOrderByIdResguardoDesc();
+
     Optional<BeanResguardo> findByActivo_IdActivoAndConfirmadoFalse(Long activoId);
 }

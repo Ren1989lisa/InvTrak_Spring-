@@ -11,9 +11,10 @@ import com.example.integradora5d.models.edificio.BeanEdificio;
 import com.example.integradora5d.models.campus.BeanCampus;
 import com.example.integradora5d.models.producto.BeanProducto;
 import com.example.integradora5d.models.producto.ProductoRepository;
-import org.jspecify.annotations.Nullable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -67,8 +68,11 @@ public class ActivoService {
 
     @Transactional(readOnly = true)
     public BeanActivo getById(Long id) {
+        if (id == null || id <= 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Activo no encontrado");
+        }
         return activoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Activo no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activo no encontrado"));
     }
 
     @Transactional
