@@ -5,7 +5,6 @@ import com.example.integradora5d.dto.auth.LoginResponseDTO;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
 import com.example.integradora5d.security.JwtService;
-import jakarta.transaction.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -30,7 +29,6 @@ public class AuthService {
     }
 
     public LoginResponseDTO login(LoginRequestDTO dto) {
-
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(dto.getCorreo(), dto.getPassword())
         );
@@ -42,8 +40,15 @@ public class AuthService {
         String token = jwtService.generateAccessToken(authentication.getName(), authorities);
 
         BeanUsuario usuario = usuarioRepository.findByCorreo(dto.getCorreo())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado en la base de datos"));
 
-        return new LoginResponseDTO(token, "Bearer", usuario.getPrimerAcceso(), authorities);
+        // CAMBIO AQUÍ: Se usa getIdUsuario() porque así se llama en tu BeanUsuario
+        return new LoginResponseDTO(
+                token,
+                "Bearer",
+                usuario.getPrimerAcceso(),
+                authorities,
+                usuario.getIdUsuario()
+        );
     }
 }
