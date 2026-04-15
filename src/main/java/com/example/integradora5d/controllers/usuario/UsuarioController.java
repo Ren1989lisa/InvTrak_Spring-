@@ -50,6 +50,12 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.update(id, dto));
     }
 
+    // Admin consulta un usuario por id
+    @GetMapping("/{id}")
+    public ResponseEntity<UsuarioForClientDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(usuarioService.getById(id));
+    }
+
     // Admin elimina usuario
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

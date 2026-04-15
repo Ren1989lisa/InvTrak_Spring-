@@ -96,6 +96,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.GET, "/api/usuario/perfil").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/usuario/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/usuario/*").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/usuario/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/usuario/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated());

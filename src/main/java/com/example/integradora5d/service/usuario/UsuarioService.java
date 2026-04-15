@@ -13,47 +13,36 @@ import com.example.integradora5d.models.rol.RolRepository;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
 import com.example.integradora5d.service.emailsend.EmailService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 public class UsuarioService {
-    private UsuarioRepository usuarioRepository;
-    private UsuarioMapper usuarioMapper;
+    private final UsuarioRepository usuarioRepository;
+    private final UsuarioMapper usuarioMapper;
     private final PasswordEncoder passwordEncoder;
     private final RolRepository rolRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final EmailService emailService;
 
-    private void validarCurpConDatos(String curp, String nombre, LocalDate fechaNacimiento) {
-        // Los primeros 4 caracteres vienen del nombre/apellidos
-        // Los siguientes 6 son la fecha: AAMMDD
-        String fechaEnCurp = curp.substring(4, 10);
-        String fechaEsperada = fechaNacimiento.format(DateTimeFormatter.ofPattern("yyMMdd"));
-
-        if (!fechaEnCurp.equals(fechaEsperada)) {
-            throw new RuntimeException("La CURP no corresponde a la fecha de nacimiento");
-        }
-    }
-
-    private String generarNumeroEmpleado(String curp, Long rolId) {
-        long count = usuarioRepository.countByRolId(rolId);
-        String consecutivo = String.format("%03d", count + 1);
-        return curp.substring(curp.length() - 2) + consecutivo;
-    }
-
+    private static final Pattern CURP_PATTERN =
+            Pattern.compile("^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[A-Z0-9]{2}$");
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           UsuarioMapper usuarioMapper,
                           PasswordEncoder passwordEncoder,
-                          RolRepository rolRepository, PasswordResetTokenRepository tokenRepository, EmailService emailService) {
+                          RolRepository rolRepository,
+                          PasswordResetTokenRepository tokenRepository,
+                          EmailService emailService) {
         this.usuarioRepository = usuarioRepository;
         this.usuarioMapper = usuarioMapper;
         this.passwordEncoder = passwordEncoder;
@@ -62,92 +51,121 @@ public class UsuarioService {
         this.emailService = emailService;
     }
 
+    private String generarNumeroEmpleado(String curp, Long rolId) {
+        long count = usuarioRepository.countByRolId(rolId);
+        String consecutivo = String.format("%03d", count + 1);
+        return curp.substring(curp.length() - 2) + consecutivo;
+    }
+
+    private BeanUsuario getUsuarioOr404(Long id) {
+        if (id == null || id <= 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+        }
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+    }
+
+    private String sanitizeRequired(String value, String message) {
+        String sanitized = value == null ? "" : value.trim();
+        if (sanitized.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+        }
+        return sanitized;
+    }
+
+    private String sanitizeCurp(String value) {
+        String curp = sanitizeRequired(value, "La CURP es obligatoria").toUpperCase();
+        if (curp.length() != 18 || !CURP_PATTERN.matcher(curp).matches()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CURP invalida");
+        }
+        return curp;
+    }
+
+    private boolean isPasswordOnlyUpdate(UpdateUsuarioDTO dto) {
+        if (dto == null) return false;
+        boolean hasPassword = dto.getPassword() != null && !dto.getPassword().isBlank();
+        if (!hasPassword) return false;
+
+        return (dto.getNombre() == null || dto.getNombre().isBlank())
+                && (dto.getCorreo() == null || dto.getCorreo().isBlank())
+                && dto.getFechaNacimiento() == null
+                && (dto.getCurp() == null || dto.getCurp().isBlank())
+                && (dto.getNumeroEmpleado() == null || dto.getNumeroEmpleado().isBlank())
+                && dto.getRolId() == null
+                && (dto.getArea() == null || dto.getArea().isBlank());
+    }
+
     @Transactional(readOnly = true)
     public List<UsuarioForClientDTO> getUsuarios() throws CustomNotContentException {
         List<BeanUsuario> usuarios = usuarioRepository.findAll();
-
-        if(usuarios.isEmpty()){
+        if (usuarios.isEmpty()) {
             throw new CustomNotContentException("No hay usuarios");
         }
-
         return usuarioMapper.usuarioToUsuarioDto(usuarios);
+    }
+
+    @Transactional(readOnly = true)
+    public UsuarioForClientDTO getById(Long id) {
+        BeanUsuario usuario = getUsuarioOr404(id);
+        return usuarioMapper.usuarioToUsuarioDto(usuario);
     }
 
     @Transactional
     public BeanUsuario createUsuario(CreateUsuarioDto dto) {
-
         if (usuarioRepository.existsByCorreo(dto.getCorreo())) {
-            throw new RuntimeException("El correo ya está registrado");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya esta registrado");
         }
 
         if (usuarioRepository.existsByCurp(dto.getCurp())) {
-            throw new RuntimeException("La CURP ya está registrada");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La CURP ya esta registrada");
         }
 
         BeanUsuario usuario = usuarioMapper.toEntity(dto);
 
         BeanRol rol = rolRepository.findById(dto.getRolId())
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rol no encontrado"));
 
         usuario.setRol(rol);
-
         usuario.setPrimerAcceso(true);
-
         usuario.setEstatus(true);
-
         usuario.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-
         usuario.setNumeroEmpleado(generarNumeroEmpleado(dto.getCurp(), dto.getRolId()));
 
         usuarioRepository.save(usuario);
 
         String token = UUID.randomUUID().toString();
-
         BeanPasswordResetToken resetToken = new BeanPasswordResetToken();
         resetToken.setToken(token);
         resetToken.setUsuario(usuario);
         resetToken.setFechaExpiracion(LocalDateTime.now().plusHours(24));
-
         tokenRepository.save(resetToken);
 
         String link = "http://localhost:8085/api/auth/reset-password?token=" + token;
-
-         emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
+        emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
 
         return usuario;
     }
 
     @Transactional
     public void resetPassword(ResetPasswordDTO dto) {
-
-        // 1. Validar que las contraseñas coincidan antes de cualquier operación de BD
         if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
-            throw new IllegalArgumentException("Las contraseñas no coinciden");
+            throw new IllegalArgumentException("Las contrasenas no coinciden");
         }
 
-        // 2. Buscar token
         BeanPasswordResetToken resetToken = tokenRepository.findByToken(dto.getToken())
-                .orElseThrow(() -> new RuntimeException("Token inválido o no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Token invalido o no encontrado"));
 
-        // 3. Validar expiración
         if (resetToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
-            // Opcional: eliminar el token expirado aquí
             tokenRepository.delete(resetToken);
-            throw new RuntimeException("El enlace de recuperación ha expirado");
+            throw new RuntimeException("El enlace de recuperacion ha expirado");
         }
 
-        // 4. Obtener y actualizar usuario
         BeanUsuario usuario = resetToken.getUsuario();
-
-        // Encriptar la nueva contraseña
         String encodedPassword = passwordEncoder.encode(dto.getNewPassword());
         usuario.setPassword(encodedPassword);
         usuario.setPrimerAcceso(false);
 
-        // 5. Persistir cambios
         usuarioRepository.save(usuario);
-
-        // 6. Eliminar token (Asegura que el enlace sea de un solo uso)
         tokenRepository.delete(resetToken);
     }
 
@@ -164,69 +182,81 @@ public class UsuarioService {
         return usuarioRepository.findByRol_Nombre("TECNICO");
     }
 
-    // Ver perfil propio
     @Transactional(readOnly = true)
     public UsuarioForClientDTO getPerfil(String correo) {
         BeanUsuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         return usuarioMapper.usuarioToUsuarioDto(usuario);
     }
 
-    // Admin edita cualquier usuario
     @Transactional
     public BeanUsuario update(Long id, UpdateUsuarioDTO dto) {
-        BeanUsuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        BeanUsuario usuario = getUsuarioOr404(id);
 
-        if (dto.getNombre() != null && !dto.getNombre().isBlank()) {
-            usuario.setNombre(dto.getNombre());
+        if (isPasswordOnlyUpdate(dto)) {
+            usuario.setPassword(passwordEncoder.encode(dto.getPassword().trim()));
+            usuario.setPrimerAcceso(false);
+            return usuarioRepository.save(usuario);
         }
 
-        if (dto.getCorreo() != null && !dto.getCorreo().isBlank()) {
-            if (usuarioRepository.existsByCorreo(dto.getCorreo()) &&
-                    !dto.getCorreo().equals(usuario.getCorreo())) {
-                throw new RuntimeException("El correo ya está registrado");
-            }
-            usuario.setCorreo(dto.getCorreo());
+        String nombre = sanitizeRequired(dto.getNombre(), "El nombre es obligatorio");
+        String correo = sanitizeRequired(dto.getCorreo(), "El correo es obligatorio");
+        LocalDate fechaNacimiento = dto.getFechaNacimiento();
+        String curp = sanitizeCurp(dto.getCurp());
+        String numeroEmpleado = sanitizeRequired(dto.getNumeroEmpleado(), "El numero de empleado es obligatorio");
+        String area = sanitizeRequired(dto.getArea(), "El area es obligatoria");
+        Long rolId = dto.getRolId();
+
+        if (fechaNacimiento == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La fecha de nacimiento es obligatoria");
+        }
+        if (fechaNacimiento.isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La fecha de nacimiento no puede ser futura");
+        }
+        if (rolId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rol es obligatorio");
         }
 
-        if (dto.getFechaNacimiento() != null) {
-            usuario.setFechaNacimiento(dto.getFechaNacimiento());
+        if (usuarioRepository.existsByCorreoAndIdUsuarioNot(correo, usuario.getIdUsuario())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya esta registrado");
+        }
+        if (usuarioRepository.existsByNumeroEmpleadoAndIdUsuarioNot(numeroEmpleado, usuario.getIdUsuario())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El numero de empleado ya esta registrado");
+        }
+        if (usuarioRepository.existsByCurpAndIdUsuarioNot(curp, usuario.getIdUsuario())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La CURP ya esta registrada");
         }
 
-        if (dto.getCurp() != null && !dto.getCurp().isBlank()) {
-            if (usuarioRepository.existsByCurp(dto.getCurp()) &&
-                    !dto.getCurp().equals(usuario.getCurp())) {
-                throw new RuntimeException("La CURP ya está registrada");
-            }
-            usuario.setCurp(dto.getCurp());
-        }
+        BeanRol rol = rolRepository.findById(rolId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rol no encontrado"));
 
-        if (dto.getRolId() != null) {
-            BeanRol rol = rolRepository.findById(dto.getRolId())
-                    .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
-            usuario.setRol(rol);
-        }
-
-        if (dto.getArea() != null && !dto.getArea().isBlank()) {
-            usuario.setArea(dto.getArea());
-        }
+        usuario.setNombre(nombre);
+        usuario.setCorreo(correo);
+        usuario.setFechaNacimiento(fechaNacimiento);
+        usuario.setCurp(curp);
+        usuario.setNumeroEmpleado(numeroEmpleado);
+        usuario.setArea(area);
+        usuario.setRol(rol);
 
         return usuarioRepository.save(usuario);
     }
 
-    // Admin elimina usuario
     @Transactional
     public void delete(Long id) {
-        BeanUsuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        BeanUsuario usuario = getUsuarioOr404(id);
 
         if (usuarioRepository.tieneResguardos(id)) {
-            throw new RuntimeException("No se puede eliminar, el usuario tiene bienes asignados");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "No se puede eliminar, el usuario tiene bienes asignados"
+            );
         }
 
         if (usuarioRepository.tieneMantenimientos(id)) {
-            throw new RuntimeException("No se puede eliminar, el usuario tiene mantenimientos asignados");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "No se puede eliminar, el usuario tiene mantenimientos asignados"
+            );
         }
 
         usuarioRepository.delete(usuario);
@@ -234,14 +264,11 @@ public class UsuarioService {
 
     @Transactional
     public void solicitarRecuperacion(String correo) {
-        // Buscar el usuario
         BeanUsuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new RuntimeException("No existe un usuario con el correo: " + correo));
 
-        // Limpiar tokens anteriores
         tokenRepository.deleteByUsuario(usuario);
 
-        // Generar nuevo token con expiración de 15 minutos
         String token = UUID.randomUUID().toString();
 
         BeanPasswordResetToken resetToken = new BeanPasswordResetToken();
@@ -251,7 +278,6 @@ public class UsuarioService {
 
         tokenRepository.save(resetToken);
 
-        // Enviar el correo con el nuevo link
         String link = "http://localhost:8085/api/auth/reset-password?token=" + token;
         emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
     }
