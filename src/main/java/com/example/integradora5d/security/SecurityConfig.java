@@ -91,6 +91,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/resguardo/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/resguardo/**").authenticated()
                         .requestMatchers("/api/historial/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/activo/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/api/usuario").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.GET, "/api/usuario/perfil").authenticated()

@@ -112,7 +112,7 @@ public class UsuarioService {
 
         String link = "http://localhost:8085/api/auth/reset-password?token=" + token;
 
-        emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
+         emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
 
         return usuario;
     }

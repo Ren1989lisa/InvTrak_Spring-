@@ -2,6 +2,7 @@ package com.example.integradora5d.dto.activo;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,19 +12,22 @@ import java.time.LocalDate;
 @Setter
 public class CreateActivoDTO {
 
-    @NotBlank(message = "El número de serie es obligatorio")
+    @NotBlank(message = "El numero de serie es obligatorio")
     private String numeroSerie;
 
-    @NotNull(message = "El tipo de activo es obligatorio")
+    @NotNull(message = "El producto es obligatorio")
     private Long productoId;
 
     @NotNull(message = "La fecha de alta es obligatoria")
     private LocalDate fechaAlta;
 
-    @NotNull(message = "La ubicación es obligatoria")
+    @NotNull(message = "La ubicacion es obligatoria")
     private Long aulaId;
 
+    @NotBlank(message = "La descripcion es obligatoria")
     private String descripcion;
 
+    @NotNull(message = "El costo es obligatorio")
+    @Positive(message = "El costo debe ser mayor a 0")
     private Double costo;
 }

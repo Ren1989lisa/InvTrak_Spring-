@@ -2,13 +2,13 @@ package com.example.integradora5d.service.activo;
 
 import com.example.integradora5d.dto.activo.CreateActivoDTO;
 import com.example.integradora5d.dto.activo.UpdateActivoDTO;
-import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.activo.ActivoRepository;
+import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.activo.ENUM_ESTATUS_ACTIVO;
 import com.example.integradora5d.models.aula_laboratorio.AulaRepository;
 import com.example.integradora5d.models.aula_laboratorio.BeanAula;
-import com.example.integradora5d.models.edificio.BeanEdificio;
 import com.example.integradora5d.models.campus.BeanCampus;
+import com.example.integradora5d.models.edificio.BeanEdificio;
 import com.example.integradora5d.models.producto.BeanProducto;
 import com.example.integradora5d.models.producto.ProductoRepository;
 import org.springframework.http.HttpStatus;
@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -35,17 +36,14 @@ public class ActivoService {
 
     @Transactional
     public String generarEtiquetaPublica(BeanProducto producto, BeanAula aula) {
-        // Primeras 2 letras del nombre del producto
         String nombreProducto = producto.getNombre().length() >= 2
                 ? producto.getNombre().substring(0, 2).toUpperCase()
                 : producto.getNombre().toUpperCase();
 
-        // Primeras 2 letras de la marca
         String marca = producto.getModelo().getMarca().getNombre().length() >= 2
                 ? producto.getModelo().getMarca().getNombre().substring(0, 2).toUpperCase()
                 : producto.getModelo().getMarca().getNombre().toUpperCase();
 
-        // Campus, edificio, aula
         BeanEdificio edificio = aula.getEdificio();
         BeanCampus campus = edificio.getCampus();
 
@@ -55,7 +53,6 @@ public class ActivoService {
 
         String prefijo = nombreProducto + marca + campusNombre + edificioNombre + aulaNombre;
 
-        // Consecutivo
         int count = activoRepository.countByEtiquetaBienStartingWith(prefijo);
         String consecutivo = String.format("%03d", count + 1);
 
@@ -76,26 +73,50 @@ public class ActivoService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activo no encontrado"));
     }
 
+    private String sanitizeNumeroSerie(String numeroSerie) {
+        String value = numeroSerie == null ? "" : numeroSerie.trim();
+        if (value.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El numero de serie es obligatorio");
+        }
+        return value;
+    }
+
+    private void validateFechaAlta(LocalDate fechaAlta) {
+        if (fechaAlta == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La fecha de alta es obligatoria");
+        }
+    }
+
+    private double validateCosto(Double costo) {
+        if (costo == null || costo <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El costo debe ser mayor a 0");
+        }
+        return costo;
+    }
+
     @Transactional
     public BeanActivo create(CreateActivoDTO dto) {
+        String numeroSerie = sanitizeNumeroSerie(dto.getNumeroSerie());
+        validateFechaAlta(dto.getFechaAlta());
+        double costo = validateCosto(dto.getCosto());
 
-        if (activoRepository.existsByNumeroSerie(dto.getNumeroSerie())) {
-            throw new RuntimeException("El número de serie ya está registrado");
+        if (activoRepository.existsByNumeroSerie(numeroSerie)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El numero de serie ya esta registrado");
         }
 
         BeanProducto producto = productoRepository.findById(dto.getProductoId())
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Producto no encontrado"));
 
         BeanAula aula = aulaRepository.findById(dto.getAulaId())
-                .orElseThrow(() -> new RuntimeException("Aula no encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aula no encontrada"));
 
         BeanActivo activo = new BeanActivo();
-        activo.setNumeroSerie(dto.getNumeroSerie());
+        activo.setNumeroSerie(numeroSerie);
         activo.setProducto(producto);
         activo.setFechaAlta(dto.getFechaAlta());
         activo.setAula(aula);
-        activo.setDescripcion(dto.getDescripcion());
-        activo.setCosto(dto.getCosto());
+        activo.setDescripcion(dto.getDescripcion().trim());
+        activo.setCosto(costo);
         activo.setEstatus(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
         activo.setEtiquetaBien(generarEtiquetaPublica(producto, aula));
 
@@ -105,25 +126,39 @@ public class ActivoService {
     @Transactional
     public BeanActivo update(Long id, UpdateActivoDTO dto) {
         BeanActivo activo = activoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Activo no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activo no encontrado"));
 
-        if (dto.getDescripcion() != null) {
-            activo.setDescripcion(dto.getDescripcion());
+        String numeroSerie = sanitizeNumeroSerie(dto.getNumeroSerie());
+        validateFechaAlta(dto.getFechaAlta());
+        double costo = validateCosto(dto.getCosto());
+
+        if (activoRepository.existsByNumeroSerieAndIdActivoNot(numeroSerie, activo.getIdActivo())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El numero de serie ya esta registrado");
         }
 
-        if (dto.getCosto() != null) {
-            activo.setCosto(dto.getCosto());
+        BeanProducto producto = productoRepository.findById(dto.getProductoId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Producto no encontrado"));
+
+        BeanAula aula = aulaRepository.findById(dto.getAulaId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aula no encontrada"));
+
+        if (dto.getEstatus() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El estatus es obligatorio");
         }
 
-        if (dto.getEstatus() != null) {
-            activo.setEstatus(dto.getEstatus());
+        String descripcion = dto.getDescripcion() == null ? "" : dto.getDescripcion().trim();
+        if (descripcion.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La descripcion es obligatoria");
         }
 
-        if (dto.getAulaId() != null) {
-            BeanAula aula = aulaRepository.findById(dto.getAulaId())
-                    .orElseThrow(() -> new RuntimeException("Aula no encontrada"));
-            activo.setAula(aula);
-        }
+        activo.setNumeroSerie(numeroSerie);
+        activo.setProducto(producto);
+        activo.setFechaAlta(dto.getFechaAlta());
+        activo.setAula(aula);
+        activo.setDescripcion(descripcion);
+        activo.setCosto(costo);
+        activo.setEstatus(dto.getEstatus());
+        // etiquetaBien es fija y no se actualiza en edicion.
 
         return activoRepository.save(activo);
     }
