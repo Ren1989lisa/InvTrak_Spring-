@@ -3,23 +3,16 @@ package com.example.integradora5d.service.reporte_danio;
 import com.example.integradora5d.dto.reporte_danio.CreateReporteDTO;
 import com.example.integradora5d.models.activo.ActivoRepository;
 import com.example.integradora5d.models.activo.BeanActivo;
-import com.example.integradora5d.models.evidencia.BeanEvidencia;
-import com.example.integradora5d.models.evidencia.ENUM_TIPO_ARCHIVO;
-import com.example.integradora5d.models.evidencia.ENUM_TIPO_EVIDENCIA;
-import com.example.integradora5d.models.evidencia.EvidenciaRepository;
+import com.example.integradora5d.models.evidencia.*;
 import com.example.integradora5d.models.prioridad.BeanPrioridad;
 import com.example.integradora5d.models.prioridad.PrioridadRepository;
-import com.example.integradora5d.models.reporte_danio.BeanReporte;
-import com.example.integradora5d.models.reporte_danio.ENUM_REPORTEDANIO;
-import com.example.integradora5d.models.reporte_danio.ReporteRepository;
+import com.example.integradora5d.models.reporte_danio.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +26,7 @@ public class ReporteService {
     private final PrioridadRepository prioridadRepository;
     private final EvidenciaRepository evidenciaRepository;
 
+    // Directorio de subida (Ruta relativa a la raíz del proyecto)
     private static final String UPLOAD_DIR = "uploads/reportes/";
 
     public ReporteService(ReporteRepository reporteRepository,
@@ -55,16 +49,22 @@ public class ReporteService {
         return reporteRepository.findByActivo_IdActivo(activoId);
     }
 
-    @Transactional
-    public BeanReporte create(CreateReporteDTO dto,
-                              List<MultipartFile> archivos) throws IOException {
+    @Transactional(rollbackFor = Exception.class)
+    public BeanReporte create(CreateReporteDTO dto, List<MultipartFile> archivos) throws IOException {
 
+        // 1. VALIDACIÓN: Obligatorio al menos una imagen
+        if (archivos == null || archivos.isEmpty() || archivos.get(0).isEmpty()) {
+            throw new RuntimeException("Es obligatorio subir al menos una evidencia fotográfica.");
+        }
+
+        // 2. Verificar existencia de dependencias
         BeanActivo activo = activoRepository.findById(dto.getActivoId())
-                .orElseThrow(() -> new RuntimeException("Activo no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Activo con ID " + dto.getActivoId() + " no encontrado"));
 
         BeanPrioridad prioridad = prioridadRepository.findById(dto.getPrioridadId())
-                .orElseThrow(() -> new RuntimeException("Prioridad no encontrada"));
+                .orElseThrow(() -> new RuntimeException("Prioridad con ID " + dto.getPrioridadId() + " no encontrada"));
 
+        // 3. Crear el reporte
         BeanReporte reporte = new BeanReporte();
         reporte.setActivo(activo);
         reporte.setTipo_falla(dto.getTipoFalla());
@@ -73,33 +73,40 @@ public class ReporteService {
         reporte.setFecha_reporte(LocalDate.now());
         reporte.setEstatus(ENUM_REPORTEDANIO.ABIERTO);
 
-        reporteRepository.save(reporte);
+        // Guardamos primero el reporte para tener el ID para las evidencias
+        BeanReporte reporteGuardado = reporteRepository.save(reporte);
 
-        // Guardar fotos y videos
-        if (archivos != null && !archivos.isEmpty()) {
-            Files.createDirectories(Paths.get(UPLOAD_DIR));
-
-            for (MultipartFile archivo : archivos) {
-                String nombreArchivo = UUID.randomUUID() + "_" + archivo.getOriginalFilename();
-                Path ruta = Paths.get(UPLOAD_DIR + nombreArchivo);
-                Files.write(ruta, archivo.getBytes());
-
-                // Detectar si es video o imagen por el content type
-                String contentType = archivo.getContentType();
-                ENUM_TIPO_ARCHIVO tipoArchivo = (contentType != null && contentType.startsWith("video"))
-                        ? ENUM_TIPO_ARCHIVO.VIDEO
-                        : ENUM_TIPO_ARCHIVO.IMAGEN;
-
-                BeanEvidencia evidencia = new BeanEvidencia();
-                evidencia.setRuta_archivo(ruta.toString());
-                evidencia.setFecha_subida(LocalDateTime.now());
-                evidencia.setTipo(ENUM_TIPO_EVIDENCIA.REPORTE);
-                evidencia.setTipo_archivo(tipoArchivo);
-                evidencia.setReporte(reporte);
-                evidenciaRepository.save(evidencia);
-            }
+        // 4. Manejo de Archivos
+        Path rootPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
+        if (!Files.exists(rootPath)) {
+            Files.createDirectories(rootPath);
         }
 
-        return reporte;
+        for (MultipartFile archivo : archivos) {
+            if (archivo.isEmpty()) continue;
+
+            // Generar nombre único y limpiar el original
+            String nombreOriginal = archivo.getOriginalFilename() != null ? archivo.getOriginalFilename().replaceAll("\\s", "_") : "foto.jpg";
+            String nombreFinal = UUID.randomUUID().toString() + "_" + nombreOriginal;
+
+            Path rutaDestino = rootPath.resolve(nombreFinal);
+            Files.copy(archivo.getInputStream(), rutaDestino, StandardCopyOption.REPLACE_EXISTING);
+
+            // 5. Crear registro de Evidencia
+            BeanEvidencia evidencia = new BeanEvidencia();
+            evidencia.setRuta_archivo(nombreFinal); // Guardamos solo el nombre para que sea portátil
+            evidencia.setFecha_subida(LocalDateTime.now());
+            evidencia.setTipo(ENUM_TIPO_EVIDENCIA.REPORTE);
+
+            // Determinar si es video o imagen
+            String contentType = archivo.getContentType();
+            evidencia.setTipo_archivo(contentType != null && contentType.startsWith("video")
+                    ? ENUM_TIPO_ARCHIVO.VIDEO : ENUM_TIPO_ARCHIVO.IMAGEN);
+
+            evidencia.setReporte(reporteGuardado);
+            evidenciaRepository.save(evidencia);
+        }
+
+        return reporteGuardado;
     }
 }
