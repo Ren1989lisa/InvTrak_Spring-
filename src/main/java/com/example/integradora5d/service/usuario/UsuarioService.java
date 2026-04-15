@@ -4,7 +4,9 @@ import com.example.integradora5d.dto.auth.ResetPasswordDTO;
 import com.example.integradora5d.dto.usuario.CreateUsuarioDto;
 import com.example.integradora5d.dto.usuario.UpdateUsuarioDTO;
 import com.example.integradora5d.dto.usuario.UsuarioForClientDTO;
+import com.example.integradora5d.error.errorTypes.CustomBadRequestException;
 import com.example.integradora5d.error.errorTypes.CustomNotContentException;
+import com.example.integradora5d.error.errorTypes.CustomNotFoundException;
 import com.example.integradora5d.mappers.UsuarioMapper;
 import com.example.integradora5d.models.password_reset_token.BeanPasswordResetToken;
 import com.example.integradora5d.models.password_reset_token.PasswordResetTokenRepository;
@@ -119,34 +121,28 @@ public class UsuarioService {
     @Transactional
     public void resetPassword(ResetPasswordDTO dto) {
 
-        // Validar que las contraseñas coincidan antes de cualquier operación de BD
+        // 1. Validar coincidencia (Usa tu excepción personalizada)
         if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
-            throw new IllegalArgumentException("Las contraseñas no coinciden");
+            throw new CustomBadRequestException("Las contraseñas no coinciden");
         }
 
-        // Buscar token
+        // 2. Buscar token
         BeanPasswordResetToken resetToken = tokenRepository.findByToken(dto.getToken())
-                .orElseThrow(() -> new RuntimeException("Token inválido o no encontrado"));
+                .orElseThrow(() -> new CustomNotFoundException("Token inválido o no encontrado"));
 
-        // Validar expiración
+        // 3. Validar expiración
         if (resetToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
-            // Opcional: eliminar el token expirado aquí
             tokenRepository.delete(resetToken);
-            throw new RuntimeException("El enlace de recuperación ha expirado");
+            throw new CustomBadRequestException("El enlace de recuperación ha expirado");
         }
 
-        // Obtener y actualizar usuario
+        // 4. Actualizar usuario
         BeanUsuario usuario = resetToken.getUsuario();
-
-        // Encriptar la nueva contraseña
         String encodedPassword = passwordEncoder.encode(dto.getNewPassword());
         usuario.setPassword(encodedPassword);
         usuario.setPrimerAcceso(false);
 
-        // Persistir cambios
         usuarioRepository.save(usuario);
-
-        // Eliminar token (Asegura que el enlace sea de un solo uso)
         tokenRepository.delete(resetToken);
     }
 
@@ -251,7 +247,7 @@ public class UsuarioService {
         tokenRepository.save(resetToken);
 
         // Enviar el correo con el nuevo link
-        String link = "http://localhost:8085/api/auth/reset-password?token=" + token;
+        String link = "http://localhost:5173/reset-password?token=" + token;
         emailService.enviarLinkResetPassword(usuario.getCorreo(), link);
     }
 }

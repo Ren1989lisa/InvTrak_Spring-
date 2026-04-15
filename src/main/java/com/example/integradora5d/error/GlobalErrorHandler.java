@@ -7,12 +7,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+@RestControllerAdvice
 public class GlobalErrorHandler {
 
     //manejar el error de los valid
@@ -41,7 +43,7 @@ public class GlobalErrorHandler {
     }
 
     @ExceptionHandler(CustomNotContentException.class)
-    public ResponseEntity<String> handleCustomNotContentException(CustomBadRequestException ex) {
+    public ResponseEntity<String> handleCustomNotContentException(CustomNotContentException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.NO_CONTENT);
     }
 
@@ -50,4 +52,5 @@ public class GlobalErrorHandler {
         Logger.getLogger(GlobalErrorHandler.class.getName()).log(Level.SEVERE, null, ex);
         return new ResponseEntity<>("Ocurrio un error interno inesperado", HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 }
