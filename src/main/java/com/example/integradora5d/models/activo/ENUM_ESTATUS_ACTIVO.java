@@ -4,5 +4,6 @@ public enum ENUM_ESTATUS_ACTIVO {
     RESGUARDADO,
     DISPONIBLE,
     MANTENIMIENTO,
-    BAJA
+    BAJA,
+    REPORTADO
 }

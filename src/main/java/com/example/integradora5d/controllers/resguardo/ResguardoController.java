@@ -3,19 +3,18 @@ package com.example.integradora5d.controllers.resguardo;
 import com.example.integradora5d.dto.resguardo.ConfirmarResguardoDTO;
 import com.example.integradora5d.dto.resguardo.CreateResguardoDTO;
 import com.example.integradora5d.dto.resguardo.DevolucionDTO;
+import com.example.integradora5d.dto.resguardo.ResguardoResponseDTO;
 import com.example.integradora5d.dto.resguardo.ResguardoUpdateDTO;
-import com.example.integradora5d.models.resguardo.BeanResguardo;
 import com.example.integradora5d.service.resguardo.ResguardoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
 
 @RestController
@@ -30,40 +29,30 @@ public class ResguardoController {
 
     // WEB - Admin asigna activo
     @PostMapping
-    public ResponseEntity<BeanResguardo> asignar(@Valid @RequestBody CreateResguardoDTO dto) {
+    public ResponseEntity<ResguardoResponseDTO> asignar(@Valid @RequestBody CreateResguardoDTO dto) {
         return new ResponseEntity<>(resguardoService.asignar(dto), HttpStatus.CREATED);
     }
 
-    /**
-     * Lista resguardos sin ID en la URL: administrador = todos; usuario = solo los suyos.
-     * Debe declararse antes de {@code GET /{id}} para que no choque con rutas estáticas.
-     */
     @GetMapping
-    public ResponseEntity<List<BeanResguardo>> listar(Principal principal) {
+    public ResponseEntity<List<ResguardoResponseDTO>> listar(Principal principal) {
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
         }
         return ResponseEntity.ok(resguardoService.listar(principal.getName()));
     }
 
-    /** Consulta un resguardo por ID (usuario asignado o administrador). Sin body. */
     @GetMapping("/{id}")
-    public ResponseEntity<BeanResguardo> obtenerPorId(@PathVariable Long id, Principal principal) {
+    public ResponseEntity<ResguardoResponseDTO> obtenerPorId(@PathVariable Long id, Principal principal) {
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
         }
         return ResponseEntity.ok(resguardoService.obtenerPorId(id, principal.getName()));
     }
 
-    /**
-     * Actualización parcial (solo campos enviados en el JSON).
-     * Entrada ejemplo: {@code { "confirmado": true }}
-     * Salida: {@link BeanResguardo} en la misma forma que POST (JSON camelCase).
-     */
     @PutMapping("/{id}")
-    public ResponseEntity<BeanResguardo> actualizar(
+    public ResponseEntity<ResguardoResponseDTO> actualizar(
             @PathVariable Long id,
-            @RequestBody ResguardoUpdateDTO dto,
+            @Valid @RequestBody ResguardoUpdateDTO dto,
             Principal principal) {
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
@@ -73,23 +62,34 @@ public class ResguardoController {
 
     // MÓVIL - Verificar QR (devuelve el resguardo pendiente)
     @GetMapping("/verificar/{activoId}")
-    public ResponseEntity<BeanResguardo> verificarQR(@PathVariable Long activoId) {
-        return ResponseEntity.ok(resguardoService.verificarQR(activoId));
+    public ResponseEntity<ResguardoResponseDTO> verificarQR(@PathVariable Long activoId, Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
+        }
+        return ResponseEntity.ok(resguardoService.verificarQR(activoId, principal.getName()));
     }
 
     // MÓVIL - Confirmar resguardo con checklist y fotos
     @PostMapping(value = "/confirmar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BeanResguardo> confirmar(
+    public ResponseEntity<ResguardoResponseDTO> confirmar(
             @RequestPart("datos") @Valid ConfirmarResguardoDTO dto,
-            @RequestPart(value = "fotos", required = false) List<MultipartFile> fotos) throws Exception {
-        return ResponseEntity.ok(resguardoService.confirmar(dto, fotos));
+            @RequestPart(value = "fotos", required = false) List<MultipartFile> fotos,
+            Principal principal) throws Exception {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
+        }
+        return ResponseEntity.ok(resguardoService.confirmar(dto, fotos, principal.getName()));
     }
 
     // MÓVIL - Devolución con fotos obligatorias
     @PostMapping(value = "/devolver", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BeanResguardo> devolver(
+    public ResponseEntity<ResguardoResponseDTO> devolver(
             @RequestPart("datos") @Valid DevolucionDTO dto,
-            @RequestPart("fotos") List<MultipartFile> fotos) throws Exception {
-        return ResponseEntity.ok(resguardoService.devolver(dto, fotos));
+            @RequestPart("fotos") List<MultipartFile> fotos,
+            Principal principal) throws Exception {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
+        }
+        return ResponseEntity.ok(resguardoService.devolver(dto, fotos, principal.getName()));
     }
 }

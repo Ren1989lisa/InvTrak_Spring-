@@ -46,7 +46,7 @@ public class UsuarioController {
     // Admin edita cualquier usuario
     @PutMapping("/{id}")
     public ResponseEntity<BeanUsuario> update(@PathVariable Long id,
-                                              @RequestBody UpdateUsuarioDTO dto) {
+                                              @Valid @RequestBody UpdateUsuarioDTO dto) {
         return ResponseEntity.ok(usuarioService.update(id, dto));
     }
 

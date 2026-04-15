@@ -11,5 +11,10 @@ public interface ResguardoRepository extends JpaRepository<BeanResguardo, Long> 
 
     List<BeanResguardo> findAllByOrderByIdResguardoDesc();
 
-    Optional<BeanResguardo> findByActivo_IdActivoAndConfirmadoFalse(Long activoId);
+    Optional<BeanResguardo> findTopByActivo_IdActivoAndConfirmadoFalseOrderByIdResguardoDesc(Long activoId);
+
+    Optional<BeanResguardo> findTopByActivo_IdActivoAndUsuario_IdUsuarioAndConfirmadoFalseOrderByIdResguardoDesc(
+            Long activoId,
+            Long usuarioId
+    );
 }

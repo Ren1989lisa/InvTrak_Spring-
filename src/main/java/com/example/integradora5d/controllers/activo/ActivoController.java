@@ -44,7 +44,7 @@ public class ActivoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<BeanActivo> update(@PathVariable Long id,
-                                             @RequestBody UpdateActivoDTO dto) {
+                                             @Valid @RequestBody UpdateActivoDTO dto) {
         return ResponseEntity.ok(activoService.update(id, dto));
     }
 }

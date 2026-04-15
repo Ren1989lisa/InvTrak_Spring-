@@ -4,10 +4,12 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class NotificacionService {
 
+    @Transactional
     public void enviarNotificacion(String tokenDispositivo, String titulo, String cuerpo) {
         try {
             Message message = Message.builder()

@@ -82,9 +82,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/resguardo/verificar/**").authenticated()
-                        .requestMatchers("/api/resguardo/confirmar").authenticated()
-                        .requestMatchers("/api/resguardo/devolver").authenticated()
+                        .requestMatchers("/api/resguardo/verificar/**").hasRole("USUARIO")
+                        .requestMatchers("/api/resguardo/confirmar").hasRole("USUARIO")
+                        .requestMatchers("/api/resguardo/devolver").hasRole("USUARIO")
                         .requestMatchers(HttpMethod.POST, "/api/resguardo").hasRole("ADMINISTRADOR")
 
                         // GET/PUT /api/resguardo/{id}: autenticado; autorización en ResguardoService

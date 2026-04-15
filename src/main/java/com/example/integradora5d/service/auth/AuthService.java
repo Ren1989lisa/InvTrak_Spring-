@@ -5,12 +5,12 @@ import com.example.integradora5d.dto.auth.LoginResponseDTO;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
 import com.example.integradora5d.security.JwtService;
-import jakarta.transaction.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -29,6 +29,7 @@ public class AuthService {
         this.usuarioRepository = usuarioRepository;
     }
 
+    @Transactional
     public LoginResponseDTO login(LoginRequestDTO dto) {
 
         Authentication authentication = authenticationManager.authenticate(

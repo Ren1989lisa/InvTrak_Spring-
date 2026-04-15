@@ -52,7 +52,7 @@ public class UbicacionController {
 
     @PutMapping("/{id}")
     public ResponseEntity<BeanAula> update(@PathVariable Long id,
-                                           @RequestBody UpdateUbicacionDTO dto) {
+                                           @Valid @RequestBody UpdateUbicacionDTO dto) {
         return ResponseEntity.ok(ubicacionService.update(id, dto));
     }
 

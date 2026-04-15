@@ -40,14 +40,14 @@ public class AuthController {
     }
 
     @PatchMapping("/dispositivo-token")
-    public ResponseEntity<Void> registrarToken(@RequestBody Map<String, String> body,
+    public ResponseEntity<Void> registrarToken(@Valid @RequestBody Map<String, String> body,
                                                @AuthenticationPrincipal UserDetails userDetails) {
         usuarioService.guardarTokenDispositivo(userDetails.getUsername(), body.get("token"));
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> solicitarRecuperacion(@RequestBody ForgotPasswordDTO dto) {
+    public ResponseEntity<?> solicitarRecuperacion(@Valid @RequestBody ForgotPasswordDTO dto) {
         usuarioService.solicitarRecuperacion(dto.getCorreo());
         return ResponseEntity.ok("Enlace enviado");
     }

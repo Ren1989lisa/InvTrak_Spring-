@@ -33,6 +33,7 @@ public class ActivoService {
         this.aulaRepository = aulaRepository;
     }
 
+    @Transactional
     public String generarEtiquetaPublica(BeanProducto producto, BeanAula aula) {
         // Primeras 2 letras del nombre del producto
         String nombreProducto = producto.getNombre().length() >= 2
