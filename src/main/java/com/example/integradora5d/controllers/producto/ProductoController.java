@@ -53,7 +53,7 @@ public class ProductoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<BeanProducto> update(@PathVariable Long id,
-                                               @RequestBody UpdateProductoDTO dto) {
+                                               @Valid @RequestBody UpdateProductoDTO dto) {
         return ResponseEntity.ok(productoService.update(id, dto));
     }
 

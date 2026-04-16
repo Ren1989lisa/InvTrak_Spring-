@@ -26,6 +26,12 @@ public class ActivoController {
         return ResponseEntity.ok(activoService.getAll());
     }
 
+    /** Ruta literal antes de /{id} para que no se interprete "disponibles" como id numérico. */
+    @GetMapping("/disponibles")
+    public ResponseEntity<List<BeanActivo>> getDisponibles() {
+        return ResponseEntity.ok(activoService.getDisponibles());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<BeanActivo> getById(@PathVariable Long id) {
         return ResponseEntity.ok(activoService.getById(id));
@@ -38,12 +44,7 @@ public class ActivoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<BeanActivo> update(@PathVariable Long id,
-                                             @RequestBody UpdateActivoDTO dto) {
+                                             @Valid @RequestBody UpdateActivoDTO dto) {
         return ResponseEntity.ok(activoService.update(id, dto));
-    }
-
-    @GetMapping("/disponibles")
-    public ResponseEntity<List<BeanActivo>> getDisponibles() {
-        return ResponseEntity.ok(activoService.getDisponibles());
     }
 }

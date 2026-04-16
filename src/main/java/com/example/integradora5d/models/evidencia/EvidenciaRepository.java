@@ -8,4 +8,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EvidenciaRepository extends JpaRepository<BeanEvidencia, Long> {
     @Query("SELECT COUNT(e) > 0 FROM BeanEvidencia e WHERE e.mantenimiento.id_mantenimiento = :mantenimientoId")
-    boolean existsByMantenimientoId(@Param("mantenimientoId") Long mantenimientoId);}
+    boolean existsByMantenimientoId(@Param("mantenimientoId") Long mantenimientoId);
+
+    void deleteByResguardo_IdResguardo(Long resguardoId);
+}

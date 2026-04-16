@@ -33,18 +33,22 @@ public class UbicacionService {
     }
 
     // --- GETS para dropdowns ---
+    @Transactional
     public List<BeanCampus> getAllCampus() {
         return campusRepository.findAll();
     }
 
+    @Transactional
     public List<BeanEdificio> getEdificiosByCampus(Long campusId) {
         return edificioRepository.findByCampus_IdCampus(campusId);
     }
 
+    @Transactional
     public List<BeanAula> getAulasByEdificio(Long edificioId) {
         return aulaRepository.findByEdificio_IdEdificio(edificioId);
     }
 
+    @Transactional
     public List<BeanAula> getAllAulas() {
         return aulaRepository.findAll();
     }

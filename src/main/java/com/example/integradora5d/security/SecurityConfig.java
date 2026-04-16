@@ -1,6 +1,6 @@
 package com.example.integradora5d.security;
-
 import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -23,17 +23,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+    public AuthenticationManager
+    authenticationManager(AuthenticationConfiguration configuration) throws Exception
+    {
+
         return configuration.getAuthenticationManager();
     }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -47,13 +47,16 @@ public class SecurityConfig {
                 HttpMethod.OPTIONS.name()));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of(HttpHeaders.AUTHORIZATION));
+
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new
+
+                UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService) {
         return new JwtAuthenticationFilter(jwtService);
@@ -70,29 +73,26 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Rutas Públicas
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // --- CAMBIO CLAVE: Permitir registro de usuarios sin Token ---
-                        .requestMatchers(HttpMethod.POST, "/api/usuario").permitAll()
-
-                        // 2. Rutas que requieren estar logueado (cualquier rol)
-                        .requestMatchers("/api/resguardo/verificar/**").authenticated()
-                        .requestMatchers("/api/resguardo/confirmar").authenticated()
-                        .requestMatchers("/api/resguardo/devolver").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/usuario/perfil").authenticated()
-
-                        // 3. Rutas exclusivas para ADMINISTRADOR
+                        .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/resguardo/verificar/**").hasRole("USUARIO")
+                        .requestMatchers("/api/resguardo/confirmar").hasRole("USUARIO")
+                        .requestMatchers("/api/resguardo/devolver").hasRole("USUARIO")
                         .requestMatchers(HttpMethod.POST, "/api/resguardo").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/historial/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/activo/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/usuario").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/api/usuario/perfil").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/usuario/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/usuario/*").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/usuario/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/usuario/**").hasRole("ADMINISTRADOR")
 

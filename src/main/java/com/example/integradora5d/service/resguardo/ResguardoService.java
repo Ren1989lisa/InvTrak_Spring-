@@ -3,25 +3,35 @@ package com.example.integradora5d.service.resguardo;
 import com.example.integradora5d.dto.resguardo.ConfirmarResguardoDTO;
 import com.example.integradora5d.dto.resguardo.CreateResguardoDTO;
 import com.example.integradora5d.dto.resguardo.DevolucionDTO;
+import com.example.integradora5d.dto.resguardo.ResguardoResponseDTO;
+import com.example.integradora5d.dto.resguardo.ResguardoUpdateDTO;
 import com.example.integradora5d.models.activo.ActivoRepository;
 import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.activo.ENUM_ESTATUS_ACTIVO;
+import com.example.integradora5d.models.aula_laboratorio.BeanAula;
+import com.example.integradora5d.models.campus.BeanCampus;
 import com.example.integradora5d.models.checklist_resguardo.BeanChecklist;
 import com.example.integradora5d.models.checklist_resguardo.ChecklistRepository;
+import com.example.integradora5d.models.edificio.BeanEdificio;
 import com.example.integradora5d.models.evidencia.BeanEvidencia;
 import com.example.integradora5d.models.evidencia.ENUM_TIPO_EVIDENCIA;
 import com.example.integradora5d.models.evidencia.EvidenciaRepository;
+import com.example.integradora5d.models.marca.BeanMarca;
+import com.example.integradora5d.models.modelo.BeanModelo;
+import com.example.integradora5d.models.producto.BeanProducto;
 import com.example.integradora5d.models.resguardo.BeanResguardo;
 import com.example.integradora5d.models.resguardo.ResguardoRepository;
+import com.example.integradora5d.models.rol.BeanRol;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
 import com.example.integradora5d.service.historial_activo.HistorialService;
 import com.example.integradora5d.service.notificacion.NotificacionService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,7 +52,6 @@ public class ResguardoService {
     private final NotificacionService notificacionService;
     private final HistorialService historialService;
 
-    // Carpeta donde se guardan las fotos
     private static final String UPLOAD_DIR = "uploads/evidencias/";
 
     public ResguardoService(ResguardoRepository resguardoRepository,
@@ -50,7 +59,8 @@ public class ResguardoService {
                             UsuarioRepository usuarioRepository,
                             EvidenciaRepository evidenciaRepository,
                             ChecklistRepository checklistRepository,
-                            NotificacionService notificacionService, HistorialService historialService) {
+                            NotificacionService notificacionService,
+                            HistorialService historialService) {
         this.resguardoRepository = resguardoRepository;
         this.activoRepository = activoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -60,10 +70,8 @@ public class ResguardoService {
         this.historialService = historialService;
     }
 
-    // --- ADMIN: Asignar activo a empleado ---
     @Transactional
-    public BeanResguardo asignar(CreateResguardoDTO dto) {
-
+    public ResguardoResponseDTO asignar(CreateResguardoDTO dto) {
         BeanActivo activo = activoRepository.findById(dto.getActivoId())
                 .orElseThrow(() -> new RuntimeException("Activo no encontrado"));
 
@@ -85,9 +93,8 @@ public class ResguardoService {
         resguardo.setObservaciones(dto.getObservaciones());
         resguardo.setConfirmado(false);
 
-        resguardoRepository.save(resguardo);
+        BeanResguardo saved = resguardoRepository.save(resguardo);
 
-        // Notificación push al empleado
         if (usuario.getTokenDispositivo() != null) {
             notificacionService.enviarNotificacion(
                     usuario.getTokenDispositivo(),
@@ -97,29 +104,44 @@ public class ResguardoService {
             );
         }
 
-        return resguardo;
+        return toResponse(saved);
     }
 
-    // --- MÓVIL: Verificar QR antes de mostrar formulario ---
     @Transactional(readOnly = true)
-    public BeanResguardo verificarQR(Long activoId) {
-        return resguardoRepository.findByActivo_IdActivoAndConfirmadoFalse(activoId)
-                .orElseThrow(() -> new RuntimeException("No tienes un resguardo pendiente para este activo"));
+    public ResguardoResponseDTO verificarQR(Long activoId, String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        BeanResguardo resguardo;
+
+        if (isAdmin(actor)) {
+            resguardo = resguardoRepository
+                    .findTopByActivo_IdActivoAndConfirmadoFalseOrderByIdResguardoDesc(activoId)
+                    .orElseThrow(() -> new RuntimeException("No tienes un resguardo pendiente para este activo"));
+        } else {
+            resguardo = resguardoRepository
+                    .findTopByActivo_IdActivoAndUsuario_IdUsuarioAndConfirmadoFalseOrderByIdResguardoDesc(
+                            activoId,
+                            actor.getIdUsuario()
+                    )
+                    .orElseThrow(() -> new RuntimeException("No tienes un resguardo pendiente para este activo"));
+        }
+
+        return toResponse(resguardo);
     }
 
-    // --- MÓVIL: Confirmar resguardo con checklist y fotos ---
     @Transactional
-    public BeanResguardo confirmar(ConfirmarResguardoDTO dto,
-                                   List<MultipartFile> fotos) throws IOException {
+    public ResguardoResponseDTO confirmar(ConfirmarResguardoDTO dto,
+                                          List<MultipartFile> fotos,
+                                          String correoAutenticado) throws IOException {
 
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
         BeanResguardo resguardo = resguardoRepository.findById(dto.getResguardoId())
                 .orElseThrow(() -> new RuntimeException("Resguardo no encontrado"));
+        assertTitularOAdmin(resguardo, actor);
 
-        if (resguardo.getConfirmado()) {
+        if (Boolean.TRUE.equals(resguardo.getConfirmado())) {
             throw new RuntimeException("Este resguardo ya fue confirmado");
         }
 
-        // Guardar checklist
         BeanChecklist checklist = new BeanChecklist();
         checklist.setEnciende(dto.getEnciende());
         checklist.setPantallaFunciona(dto.getPantallaFunciona());
@@ -127,15 +149,12 @@ public class ResguardoService {
         checklist.setDanios(dto.getDanios());
         checklist.setObservaciones(dto.getObservaciones());
         checklist.setResguardo(resguardo);
-        checklistRepository.save(checklist);
+        BeanChecklist savedChecklist = checklistRepository.save(checklist);
+        resguardo.setChecklists(savedChecklist);
 
-        // Guardar fotos
         guardarFotos(fotos, resguardo, ENUM_TIPO_EVIDENCIA.RESGUARDO);
 
-        // Confirmar resguardo
         resguardo.setConfirmado(true);
-
-        // Cambiar estatus del activo
         resguardo.getActivo().setEstatus(ENUM_ESTATUS_ACTIVO.RESGUARDADO);
         activoRepository.save(resguardo.getActivo());
 
@@ -147,13 +166,16 @@ public class ResguardoService {
                 resguardo.getUsuario()
         );
 
-        return resguardoRepository.save(resguardo);
+        BeanResguardo saved = resguardoRepository.save(resguardo);
+        return toResponse(saved);
     }
 
-    // --- MÓVIL: Devolución ---
     @Transactional
-    public BeanResguardo devolver(DevolucionDTO dto,
-                                  List<MultipartFile> fotos) throws IOException {
+    public ResguardoResponseDTO devolver(DevolucionDTO dto,
+                                         List<MultipartFile> fotos,
+                                         String correoAutenticado) throws IOException {
+
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
 
         if (fotos == null || fotos.isEmpty()) {
             throw new RuntimeException("Debes adjuntar al menos una foto para la devolución");
@@ -161,19 +183,17 @@ public class ResguardoService {
 
         BeanResguardo resguardo = resguardoRepository.findById(dto.getResguardoId())
                 .orElseThrow(() -> new RuntimeException("Resguardo no encontrado"));
+        assertTitularOAdmin(resguardo, actor);
 
-        if (!resguardo.getConfirmado()) {
+        if (!Boolean.TRUE.equals(resguardo.getConfirmado())) {
             throw new RuntimeException("Este resguardo no ha sido confirmado");
         }
 
-        // Guardar fotos de devolución
         guardarFotos(fotos, resguardo, ENUM_TIPO_EVIDENCIA.DEVOLUCION);
 
-        // Registrar devolución
         resguardo.setFechaDevolucion(LocalDate.now());
         resguardo.setObservaciones(dto.getObservaciones());
 
-        // Cambiar estatus del activo a disponible
         resguardo.getActivo().setEstatus(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
         activoRepository.save(resguardo.getActivo());
 
@@ -185,10 +205,131 @@ public class ResguardoService {
                 resguardo.getUsuario()
         );
 
-        return resguardoRepository.save(resguardo);
+        BeanResguardo saved = resguardoRepository.save(resguardo);
+        return toResponse(saved);
     }
 
-    // --- Helper: guardar fotos en disco ---
+    @Transactional(readOnly = true)
+    public List<ResguardoResponseDTO> listar(String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        boolean isAdmin = isAdmin(actor);
+        List<BeanResguardo> resguardos = isAdmin
+                ? resguardoRepository.findAllByOrderByIdResguardoDesc()
+                : resguardoRepository.findByUsuario_IdUsuarioOrderByIdResguardoDesc(actor.getIdUsuario());
+
+        return resguardos.stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ResguardoResponseDTO obtenerPorId(Long id, String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        BeanResguardo resguardo = resguardoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
+        assertTitularOAdmin(resguardo, actor);
+        return toResponse(resguardo);
+    }
+
+    @Transactional
+    public ResguardoResponseDTO actualizar(Long id, ResguardoUpdateDTO dto, String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        BeanResguardo resguardo = resguardoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
+
+        assertTitularOAdmin(resguardo, actor);
+
+        boolean isAdmin = isAdmin(actor);
+        ENUM_ESTATUS_ACTIVO estadoSolicitado = dto.getEstado();
+
+        if (!isAdmin && estadoSolicitado != null && estadoSolicitado != ENUM_ESTATUS_ACTIVO.DEVOLUCION) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo un administrador puede modificar el estado del activo");
+        }
+
+        if (dto.getObservaciones() != null) {
+            resguardo.setObservaciones(dto.getObservaciones());
+        }
+
+        if (dto.getConfirmado() != null) {
+            boolean antes = Boolean.TRUE.equals(resguardo.getConfirmado());
+            resguardo.setConfirmado(dto.getConfirmado());
+            if (Boolean.TRUE.equals(dto.getConfirmado()) && !antes) {
+                BeanActivo activo = resguardo.getActivo();
+                if (activo == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resguardo sin activo asociado");
+                }
+                String anterior = activo.getEstatus() != null ? activo.getEstatus().name() : "";
+                activo.setEstatus(ENUM_ESTATUS_ACTIVO.RESGUARDADO);
+                activoRepository.save(activo);
+                historialService.registrar(activo, anterior, "RESGUARDADO",
+                        "Resguardo confirmado (API)", resguardo.getUsuario());
+            }
+        }
+
+        if (estadoSolicitado != null) {
+            BeanActivo activo = resguardo.getActivo();
+            if (activo == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resguardo sin activo asociado");
+            }
+            String anterior = activo.getEstatus() != null ? activo.getEstatus().name() : "";
+            activo.setEstatus(dto.getEstado());
+            activoRepository.save(activo);
+            historialService.registrar(activo, anterior, dto.getEstado().name(),
+                    "Actualización de estatus del activo (resguardo)", actor);
+        }
+
+        BeanResguardo saved = resguardoRepository.save(resguardo);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void eliminar(Long id, String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        if (!isAdmin(actor)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo un administrador puede eliminar resguardos");
+        }
+
+        BeanResguardo resguardo = resguardoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
+
+        BeanActivo activo = resguardo.getActivo();
+        if (activo != null && activo.getEstatus() == ENUM_ESTATUS_ACTIVO.DEVOLUCION) {
+            String anterior = activo.getEstatus().name();
+            activo.setEstatus(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
+            activoRepository.save(activo);
+            historialService.registrar(
+                    activo,
+                    anterior,
+                    ENUM_ESTATUS_ACTIVO.DISPONIBLE.name(),
+                    "Devolucion aceptada por administrador",
+                    actor
+            );
+        }
+
+        evidenciaRepository.deleteByResguardo_IdResguardo(id);
+        checklistRepository.deleteByResguardo_IdResguardo(id);
+        resguardoRepository.delete(resguardo);
+    }
+
+    private BeanUsuario getActorOrThrow(String correoAutenticado) {
+        return usuarioRepository.findByCorreo(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+    }
+
+    private boolean isAdmin(BeanUsuario actor) {
+        return actor.getRol() != null && "ADMINISTRADOR".equals(actor.getRol().getNombre());
+    }
+
+    private void assertTitularOAdmin(BeanResguardo resguardo, BeanUsuario actor) {
+        boolean isAdmin = isAdmin(actor);
+        boolean esTitular = resguardo.getUsuario() != null
+                && resguardo.getUsuario().getIdUsuario().equals(actor.getIdUsuario());
+        if (!isAdmin && !esTitular) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "No tienes permiso para acceder a este resguardo");
+        }
+    }
+
     private void guardarFotos(List<MultipartFile> fotos,
                               BeanResguardo resguardo,
                               ENUM_TIPO_EVIDENCIA tipo) throws IOException {
@@ -210,5 +351,119 @@ public class ResguardoService {
         }
     }
 
+    private ResguardoResponseDTO toResponse(BeanResguardo source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO(
+                source.getIdResguardo(),
+                source.getFechaAsignacion(),
+                source.getConfirmado(),
+                source.getObservaciones(),
+                source.getFechaDevolucion(),
+                mapUsuario(source.getUsuario()),
+                mapChecklist(source.getChecklists()),
+                mapActivo(source.getActivo())
+        );
+    }
 
+    private ResguardoResponseDTO.UsuarioDTO mapUsuario(BeanUsuario source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.UsuarioDTO(
+                source.getIdUsuario(),
+                source.getNombre(),
+                source.getCorreo(),
+                source.getFechaNacimiento(),
+                source.getCurp(),
+                source.getNumeroEmpleado(),
+                source.getArea(),
+                source.getEstatus(),
+                source.getPrimerAcceso(),
+                source.getTokenDispositivo(),
+                mapRol(source.getRol())
+        );
+    }
+
+    private ResguardoResponseDTO.RolDTO mapRol(BeanRol source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.RolDTO(source.getIdRol(), source.getNombre());
+    }
+
+    private ResguardoResponseDTO.ChecklistDTO mapChecklist(BeanChecklist source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.ChecklistDTO(
+                source.getIdChecklist(),
+                source.getObservaciones(),
+                enumName(source.getEnciende()),
+                enumName(source.getPantallaFunciona()),
+                enumName(source.getTieneCargador()),
+                enumName(source.getDanios())
+        );
+    }
+
+    private ResguardoResponseDTO.ActivoDTO mapActivo(BeanActivo source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.ActivoDTO(
+                source.getIdActivo(),
+                source.getEtiquetaBien(),
+                source.getNumeroSerie(),
+                source.getDescripcion(),
+                source.getFechaAlta(),
+                source.getCosto(),
+                enumName(source.getEstatus()),
+                mapAula(source.getAula()),
+                mapProducto(source.getProducto())
+        );
+    }
+
+    private ResguardoResponseDTO.AulaDTO mapAula(BeanAula source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.AulaDTO(
+                source.getIdAula(),
+                source.getNombre(),
+                source.getDescripcion(),
+                mapEdificio(source.getEdificio())
+        );
+    }
+
+    private ResguardoResponseDTO.EdificioDTO mapEdificio(BeanEdificio source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.EdificioDTO(
+                source.getIdEdificio(),
+                source.getNombre(),
+                mapCampus(source.getCampus())
+        );
+    }
+
+    private ResguardoResponseDTO.CampusDTO mapCampus(BeanCampus source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.CampusDTO(source.getIdCampus(), source.getNombre());
+    }
+
+    private ResguardoResponseDTO.ProductoDTO mapProducto(BeanProducto source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.ProductoDTO(
+                source.getId_producto(),
+                source.getNombre(),
+                source.getDescripcion(),
+                enumName(source.getEstatus()),
+                mapModelo(source.getModelo())
+        );
+    }
+
+    private ResguardoResponseDTO.ModeloDTO mapModelo(BeanModelo source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.ModeloDTO(
+                source.getId_modelo(),
+                source.getNombre(),
+                mapMarca(source.getMarca())
+        );
+    }
+
+    private ResguardoResponseDTO.MarcaDTO mapMarca(BeanMarca source) {
+        if (source == null) return null;
+        return new ResguardoResponseDTO.MarcaDTO(source.getId_marca(), source.getNombre());
+    }
+
+    private String enumName(Enum<?> value) {
+        return value == null ? null : value.name();
+    }
 }

@@ -1,6 +1,7 @@
 package com.example.integradora5d.models.checklist_resguardo;
 
 import com.example.integradora5d.models.resguardo.BeanResguardo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,5 +36,6 @@ public class BeanChecklist {
 
     @OneToOne
     @JoinColumn(name = "id_resguardo")
+    @JsonIgnore
     private BeanResguardo resguardo;
 }

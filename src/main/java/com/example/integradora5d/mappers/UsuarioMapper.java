@@ -37,6 +37,7 @@ public class UsuarioMapper {
             dto.setCurp(usuario.getCurp());
             dto.setNumeroEmpleado(usuario.getNumeroEmpleado());
             dto.setArea(usuario.getArea());
+            dto.setFechaNacimiento(usuario.getFechaNacimiento());
             dto.setEstatus(usuario.getEstatus());
             dto.setFechaNacimiento(usuario.getFechaNacimiento());
 
@@ -57,6 +58,7 @@ public class UsuarioMapper {
         dto.setCurp(usuario.getCurp());
         dto.setNumeroEmpleado(usuario.getNumeroEmpleado());
         dto.setArea(usuario.getArea());
+        dto.setFechaNacimiento(usuario.getFechaNacimiento());
         dto.setEstatus(usuario.getEstatus());
         dto.setFechaNacimiento(usuario.getFechaNacimiento());
 

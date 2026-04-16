@@ -11,6 +11,7 @@ import java.util.List;
 @Repository
 public interface ActivoRepository extends JpaRepository<BeanActivo, Long> {
     boolean existsByNumeroSerie(String numeroSerie);
+    boolean existsByNumeroSerieAndIdActivoNot(String numeroSerie, Long idActivo);
     boolean existsByProducto(BeanProducto producto);
     boolean existsByAula(BeanAula aula);
     int countByEtiquetaBienStartingWith(String prefijo);

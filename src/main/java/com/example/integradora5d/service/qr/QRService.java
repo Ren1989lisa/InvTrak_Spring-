@@ -8,6 +8,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import com.example.integradora5d.models.activo.ActivoRepository;
 import com.example.integradora5d.models.activo.BeanActivo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -21,6 +22,7 @@ public class QRService {
         this.activoRepository = activoRepository;
     }
 
+    @Transactional
     public byte[] generarQR(Long activoId) throws WriterException, IOException {
 
         BeanActivo activo = activoRepository.findById(activoId)

@@ -18,6 +18,8 @@ public class UpdateUsuarioDTO {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate fechaNacimiento;
     private String curp;
+    private String numeroEmpleado;
     private Long rolId;
     private String area;
+    private String password;
 }
