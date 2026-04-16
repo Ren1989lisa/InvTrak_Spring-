@@ -32,6 +32,11 @@ public class ReporteController {
         return ResponseEntity.ok(reporteService.getByActivo(activoId));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<BeanReporte> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(reporteService.getById(id));
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BeanReporte> create(
             @RequestPart("datos") @Valid CreateReporteDTO dto,

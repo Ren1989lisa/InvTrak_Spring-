@@ -197,13 +197,13 @@ public class MantenimientoService {
         BeanReporte reporte = mantenimiento.getReporte();
 
         if (dto.getEstatusFinal() == ENUM_MANTENIMIENTO.REPARADO) {
-            // Activo vuelve a disponible
-            reporte.getActivo().setEstatus(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
+            // Activo vuelve al usuario en estatus resguardado
+            reporte.getActivo().setEstatus(ENUM_ESTATUS_ACTIVO.RESGUARDADO);
             reporte.setEstatus(ENUM_REPORTEDANIO.ATENDIDO);
             historialService.registrar(
                     reporte.getActivo(),
                     "MANTENIMIENTO",
-                    "DISPONIBLE",
+                    "RESGUARDADO",
                     "Mantenimiento completado: REPARADO",
                     mantenimiento.getTecnico()
             );

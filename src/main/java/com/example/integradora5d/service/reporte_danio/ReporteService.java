@@ -50,6 +50,12 @@ public class ReporteService {
         return reporteRepository.findByActivo_IdActivo(activoId);
     }
 
+    @Transactional(readOnly = true)
+    public BeanReporte getById(Long reporteId) {
+        return reporteRepository.findById(reporteId)
+                .orElseThrow(() -> new RuntimeException("Reporte no encontrado"));
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public BeanReporte create(CreateReporteDTO dto, List<MultipartFile> archivos) throws IOException {
 
