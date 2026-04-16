@@ -4,6 +4,7 @@ import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.mantenimiento.BeanMantenimiento;
 import com.example.integradora5d.models.reporte_danio.BeanReporte;
 import com.example.integradora5d.models.resguardo.BeanResguardo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -39,6 +40,7 @@ public class BeanEvidencia {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_reporte")
+    @JsonIgnore
     private BeanReporte reporte;
 
     @ManyToOne

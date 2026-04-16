@@ -3,6 +3,7 @@ package com.example.integradora5d.service.reporte_danio;
 import com.example.integradora5d.dto.reporte_danio.CreateReporteDTO;
 import com.example.integradora5d.models.activo.ActivoRepository;
 import com.example.integradora5d.models.activo.BeanActivo;
+import com.example.integradora5d.models.activo.ENUM_ESTATUS_ACTIVO;
 import com.example.integradora5d.models.evidencia.*;
 import com.example.integradora5d.models.prioridad.BeanPrioridad;
 import com.example.integradora5d.models.prioridad.PrioridadRepository;
@@ -59,7 +60,12 @@ public class ReporteService {
 
         // 2. Verificar existencia de dependencias
         BeanActivo activo = activoRepository.findById(dto.getActivoId())
-                .orElseThrow(() -> new RuntimeException("Activo con ID " + dto.getActivoId() + " no encontrado"));
+                .orElseThrow(() -> new RuntimeException(
+                        "Activo con ID " + dto.getActivoId() + " no encontrado"
+                ));
+        /* CAMBIAR ESTATUS DEL ACTIVO */
+        activo.setEstatus(ENUM_ESTATUS_ACTIVO.REPORTADO);
+        activoRepository.save(activo);
 
         BeanPrioridad prioridad = prioridadRepository.findById(dto.getPrioridadId())
                 .orElseThrow(() -> new RuntimeException("Prioridad con ID " + dto.getPrioridadId() + " no encontrada"));

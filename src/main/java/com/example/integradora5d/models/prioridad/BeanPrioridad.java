@@ -30,5 +30,6 @@ public class BeanPrioridad {
     private List<BeanMantenimiento> mantenimientos;
 
     @OneToMany(mappedBy = "prioridad", fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<BeanReporte> reportes;
 }
