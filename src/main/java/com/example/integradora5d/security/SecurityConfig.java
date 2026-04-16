@@ -90,6 +90,7 @@ public class SecurityConfig {
                         // GET/PUT /api/resguardo/{id}: autenticado; autorización en ResguardoService
                         .requestMatchers(HttpMethod.GET, "/api/resguardo/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/resguardo/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/resguardo/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/historial/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/activo/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/api/usuario").hasRole("ADMINISTRADOR")

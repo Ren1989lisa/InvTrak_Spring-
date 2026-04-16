@@ -238,8 +238,9 @@ public class ResguardoService {
         assertTitularOAdmin(resguardo, actor);
 
         boolean isAdmin = isAdmin(actor);
+        ENUM_ESTATUS_ACTIVO estadoSolicitado = dto.getEstado();
 
-        if (!isAdmin && dto.getEstado() != null) {
+        if (!isAdmin && estadoSolicitado != null && estadoSolicitado != ENUM_ESTATUS_ACTIVO.DEVOLUCION) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Solo un administrador puede modificar el estado del activo");
         }
@@ -264,7 +265,7 @@ public class ResguardoService {
             }
         }
 
-        if (isAdmin && dto.getEstado() != null) {
+        if (estadoSolicitado != null) {
             BeanActivo activo = resguardo.getActivo();
             if (activo == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resguardo sin activo asociado");
@@ -278,6 +279,36 @@ public class ResguardoService {
 
         BeanResguardo saved = resguardoRepository.save(resguardo);
         return toResponse(saved);
+    }
+
+    @Transactional
+    public void eliminar(Long id, String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        if (!isAdmin(actor)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo un administrador puede eliminar resguardos");
+        }
+
+        BeanResguardo resguardo = resguardoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
+
+        BeanActivo activo = resguardo.getActivo();
+        if (activo != null && activo.getEstatus() == ENUM_ESTATUS_ACTIVO.DEVOLUCION) {
+            String anterior = activo.getEstatus().name();
+            activo.setEstatus(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
+            activoRepository.save(activo);
+            historialService.registrar(
+                    activo,
+                    anterior,
+                    ENUM_ESTATUS_ACTIVO.DISPONIBLE.name(),
+                    "Devolucion aceptada por administrador",
+                    actor
+            );
+        }
+
+        evidenciaRepository.deleteByResguardo_IdResguardo(id);
+        checklistRepository.deleteByResguardo_IdResguardo(id);
+        resguardoRepository.delete(resguardo);
     }
 
     private BeanUsuario getActorOrThrow(String correoAutenticado) {

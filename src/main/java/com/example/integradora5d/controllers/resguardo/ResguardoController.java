@@ -60,6 +60,15 @@ public class ResguardoController {
         return ResponseEntity.ok(resguardoService.actualizar(id, dto, principal.getName()));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
+        }
+        resguardoService.eliminar(id, principal.getName());
+        return ResponseEntity.noContent().build();
+    }
+
     // MÓVIL - Verificar QR (devuelve el resguardo pendiente)
     @GetMapping("/verificar/{activoId}")
     public ResponseEntity<ResguardoResponseDTO> verificarQR(@PathVariable Long activoId, Principal principal) {
