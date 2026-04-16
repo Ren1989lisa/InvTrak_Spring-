@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -45,6 +46,11 @@ public class GlobalErrorHandler {
     @ExceptionHandler(CustomNotContentException.class)
     public ResponseEntity<String> handleCustomNotContentException(CustomNotContentException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.NO_CONTENT);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<String> handleNoResourceFoundException(NoResourceFoundException ex) {
+        return new ResponseEntity<>("Recurso no encontrado", HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
