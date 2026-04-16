@@ -33,10 +33,15 @@ public class UsuarioController {
     }
 
     // Ver perfil propio - cualquier usuario autenticado
+    // UsuarioController.java corregido
     @GetMapping("/perfil")
-    public ResponseEntity<UsuarioForClientDTO> getPerfil(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(usuarioService.getPerfil(userDetails.getUsername()));
+    public ResponseEntity<UsuarioForClientDTO> getPerfil() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+
+        String email = (String) auth.getPrincipal();
+
+        return ResponseEntity.ok(usuarioService.getPerfil(email));
     }
 
     // Admin edita cualquier usuario

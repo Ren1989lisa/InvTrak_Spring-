@@ -1,12 +1,12 @@
 package com.example.integradora5d.models.reporte_danio;
 
 import com.example.integradora5d.models.activo.BeanActivo;
-import com.example.integradora5d.models.aula_laboratorio.BeanAula;
 import com.example.integradora5d.models.prioridad.BeanPrioridad;
+import com.example.integradora5d.models.evidencia.BeanEvidencia;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "reporte_danio")
@@ -28,7 +28,7 @@ public class BeanReporte {
     @Enumerated(EnumType.STRING)
     private ENUM_REPORTEDANIO estatus;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // Cambiado a EAGER para ver la prioridad en Android
     @JoinColumn(name = "id_prioridad")
     private BeanPrioridad prioridad;
 
@@ -36,4 +36,7 @@ public class BeanReporte {
     @JoinColumn(name = "id_activo")
     private BeanActivo activo;
 
+    // Relación corregida para recuperar las fotos del reporte
+    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<BeanEvidencia> evidencias;
 }

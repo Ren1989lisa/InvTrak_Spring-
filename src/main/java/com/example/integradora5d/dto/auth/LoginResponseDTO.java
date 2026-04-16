@@ -16,4 +16,5 @@ public class LoginResponseDTO {
     private String tokenType;
     private Boolean primerAcceso;
     private List<String> roles;
+    private Long idUsuario;
 }
