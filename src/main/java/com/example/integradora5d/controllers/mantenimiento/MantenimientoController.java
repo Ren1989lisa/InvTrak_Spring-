@@ -3,6 +3,7 @@ package com.example.integradora5d.controllers.mantenimiento;
 import com.example.integradora5d.dto.mantenimiento.AsignarMantenimientoDTO;
 import com.example.integradora5d.dto.mantenimiento.AtenderMantenimientoDTO;
 import com.example.integradora5d.dto.mantenimiento.CerrarMantenimientoDTO;
+import com.example.integradora5d.dto.mantenimiento.SolicitarBajaDTO;
 import com.example.integradora5d.models.mantenimiento.BeanMantenimiento;
 import com.example.integradora5d.models.reporte_danio.BeanReporte;
 import com.example.integradora5d.service.mantenimiento.MantenimientoService;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -61,5 +63,13 @@ public class MantenimientoController {
     @PutMapping("/cerrar")
     public ResponseEntity<BeanMantenimiento> cerrar(@Valid @RequestBody CerrarMantenimientoDTO dto) {
         return ResponseEntity.ok(mantenimientoService.cerrar(dto));
+    }
+
+    // WEB/MOVIL - Tecnico solicita baja del activo en mantenimiento
+    @PutMapping("/solicitar-baja")
+    public ResponseEntity<BeanMantenimiento> solicitarBaja(
+            @Valid @RequestBody SolicitarBajaDTO dto,
+            Principal principal) {
+        return ResponseEntity.ok(mantenimientoService.solicitarBaja(dto, principal.getName()));
     }
 }

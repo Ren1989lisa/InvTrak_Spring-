@@ -85,6 +85,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/resguardo/verificar/**").hasRole("USUARIO")
                         .requestMatchers("/api/resguardo/confirmar").hasRole("USUARIO")
                         .requestMatchers("/api/resguardo/devolver").hasRole("USUARIO")
+                        .requestMatchers(HttpMethod.PUT, "/api/resguardo/*/cancelar-baja").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/api/mantenimiento/solicitar-baja").hasRole("TECNICO")
                         .requestMatchers(HttpMethod.POST, "/api/resguardo").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/historial/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/activo/**").hasRole("ADMINISTRADOR")

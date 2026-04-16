@@ -3,6 +3,8 @@ package com.example.integradora5d.service.mantenimiento;
 import com.example.integradora5d.dto.mantenimiento.AsignarMantenimientoDTO;
 import com.example.integradora5d.dto.mantenimiento.AtenderMantenimientoDTO;
 import com.example.integradora5d.dto.mantenimiento.CerrarMantenimientoDTO;
+import com.example.integradora5d.dto.mantenimiento.SolicitarBajaDTO;
+import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.activo.ENUM_ESTATUS_ACTIVO;
 import com.example.integradora5d.models.evidencia.BeanEvidencia;
 import com.example.integradora5d.models.evidencia.ENUM_TIPO_EVIDENCIA;
@@ -22,9 +24,11 @@ import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
 import com.example.integradora5d.service.historial_activo.HistorialService;
 import com.example.integradora5d.service.notificacion.NotificacionService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -232,5 +236,70 @@ public class MantenimientoService {
 
         reporteRepository.save(reporte);
         return mantenimientoRepository.save(mantenimiento);
+    }
+
+    // WEB/MOVIL - Tecnico solicita baja
+    @Transactional
+    public BeanMantenimiento solicitarBaja(SolicitarBajaDTO dto, String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        if (!isTecnico(actor)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo un tecnico puede solicitar baja");
+        }
+
+        BeanMantenimiento mantenimiento = mantenimientoRepository.findById(dto.getMantenimientoId())
+                .orElseThrow(() -> new RuntimeException("Mantenimiento no encontrado"));
+
+        if (mantenimiento.getTecnico() == null ||
+                !mantenimiento.getTecnico().getIdUsuario().equals(actor.getIdUsuario())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permiso para este mantenimiento");
+        }
+
+        BeanReporte reporte = mantenimiento.getReporte();
+        if (reporte == null || reporte.getActivo() == null) {
+            throw new RuntimeException("Mantenimiento sin activo asociado");
+        }
+
+        BeanActivo activo = reporte.getActivo();
+        if (activo.getEstatus() == ENUM_ESTATUS_ACTIVO.BAJA) {
+            throw new RuntimeException("El activo ya se encuentra en BAJA");
+        }
+
+        if (activo.getEstatus() == ENUM_ESTATUS_ACTIVO.SOLICITUD_DE_BAJA) {
+            throw new RuntimeException("El activo ya tiene una solicitud de baja pendiente");
+        }
+
+        String anterior = activo.getEstatus() != null ? activo.getEstatus().name() : "MANTENIMIENTO";
+        activo.setEstatus(ENUM_ESTATUS_ACTIVO.SOLICITUD_DE_BAJA);
+
+        mantenimiento.setEstatus(ENUM_MANTENIMIENTO.IRREPARABLE);
+        mantenimiento.setFecha_fin(LocalDate.now());
+
+        BeanSolicitud solicitud = new BeanSolicitud();
+        solicitud.setActivo(activo);
+        solicitud.setMantenimiento(mantenimiento);
+        solicitud.setMotivo("Solicitud de baja tecnica: " + (dto.getObservaciones() != null ? dto.getObservaciones() : ""));
+        solicitud.setFecha_solicitud(LocalDate.now());
+        solicitud.setEstatus(ENUM_SOLICITUD_BAJA.PENDIENTE);
+        solicitudBajaRepository.save(solicitud);
+
+        historialService.registrar(
+                activo,
+                anterior,
+                ENUM_ESTATUS_ACTIVO.SOLICITUD_DE_BAJA.name(),
+                "Tecnico solicita baja del activo",
+                actor
+        );
+
+        reporteRepository.save(reporte);
+        return mantenimientoRepository.save(mantenimiento);
+    }
+
+    private BeanUsuario getActorOrThrow(String correoAutenticado) {
+        return usuarioRepository.findByCorreo(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+    }
+
+    private boolean isTecnico(BeanUsuario actor) {
+        return actor.getRol() != null && "TECNICO".equalsIgnoreCase(actor.getRol().getNombre());
     }
 }

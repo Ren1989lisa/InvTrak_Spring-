@@ -16,12 +16,17 @@ import com.example.integradora5d.models.edificio.BeanEdificio;
 import com.example.integradora5d.models.evidencia.BeanEvidencia;
 import com.example.integradora5d.models.evidencia.ENUM_TIPO_EVIDENCIA;
 import com.example.integradora5d.models.evidencia.EvidenciaRepository;
+import com.example.integradora5d.models.mantenimiento.BeanMantenimiento;
+import com.example.integradora5d.models.mantenimiento.ENUM_MANTENIMIENTO;
 import com.example.integradora5d.models.marca.BeanMarca;
 import com.example.integradora5d.models.modelo.BeanModelo;
 import com.example.integradora5d.models.producto.BeanProducto;
 import com.example.integradora5d.models.resguardo.BeanResguardo;
 import com.example.integradora5d.models.resguardo.ResguardoRepository;
 import com.example.integradora5d.models.rol.BeanRol;
+import com.example.integradora5d.models.solicitud_baja.BeanSolicitud;
+import com.example.integradora5d.models.solicitud_baja.ENUM_SOLICITUD_BAJA;
+import com.example.integradora5d.models.solicitud_baja.SolicitudBajaRepository;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
 import com.example.integradora5d.service.historial_activo.HistorialService;
@@ -49,6 +54,7 @@ public class ResguardoService {
     private final UsuarioRepository usuarioRepository;
     private final EvidenciaRepository evidenciaRepository;
     private final ChecklistRepository checklistRepository;
+    private final SolicitudBajaRepository solicitudBajaRepository;
     private final NotificacionService notificacionService;
     private final HistorialService historialService;
 
@@ -59,6 +65,7 @@ public class ResguardoService {
                             UsuarioRepository usuarioRepository,
                             EvidenciaRepository evidenciaRepository,
                             ChecklistRepository checklistRepository,
+                            SolicitudBajaRepository solicitudBajaRepository,
                             NotificacionService notificacionService,
                             HistorialService historialService) {
         this.resguardoRepository = resguardoRepository;
@@ -66,6 +73,7 @@ public class ResguardoService {
         this.usuarioRepository = usuarioRepository;
         this.evidenciaRepository = evidenciaRepository;
         this.checklistRepository = checklistRepository;
+        this.solicitudBajaRepository = solicitudBajaRepository;
         this.notificacionService = notificacionService;
         this.historialService = historialService;
     }
@@ -309,6 +317,65 @@ public class ResguardoService {
         evidenciaRepository.deleteByResguardo_IdResguardo(id);
         checklistRepository.deleteByResguardo_IdResguardo(id);
         resguardoRepository.delete(resguardo);
+    }
+
+    @Transactional
+    public ResguardoResponseDTO cancelarBaja(Long id, String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        if (!isAdmin(actor)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo un administrador puede cancelar una solicitud de baja");
+        }
+
+        BeanResguardo resguardo = resguardoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
+
+        BeanActivo activo = resguardo.getActivo();
+        if (activo == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resguardo sin activo asociado");
+        }
+
+        if (activo.getEstatus() != ENUM_ESTATUS_ACTIVO.SOLICITUD_DE_BAJA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El activo no tiene una solicitud de baja pendiente");
+        }
+
+        List<BeanSolicitud> pendientes = solicitudBajaRepository.findByActivoAndEstatusDesc(
+                activo.getIdActivo(),
+                ENUM_SOLICITUD_BAJA.PENDIENTE
+        );
+
+        BeanSolicitud solicitud = pendientes.isEmpty() ? null : pendientes.getFirst();
+        if (solicitud != null) {
+            solicitud.setEstatus(ENUM_SOLICITUD_BAJA.RECHAZADA);
+            solicitud.setUsuarioAprobacion(actor);
+
+            BeanMantenimiento mantenimiento = solicitud.getMantenimiento();
+            if (mantenimiento != null) {
+                mantenimiento.setEstatus(ENUM_MANTENIMIENTO.EN_PROCESO);
+                mantenimiento.setFecha_fin(null);
+                if (mantenimiento.getReporte() != null) {
+                    mantenimiento.getReporte().setEstatus(com.example.integradora5d.models.reporte_danio.ENUM_REPORTEDANIO.EN_REVISION);
+                }
+            }
+
+            solicitudBajaRepository.save(solicitud);
+        }
+
+        String anterior = activo.getEstatus().name();
+        activo.setEstatus(ENUM_ESTATUS_ACTIVO.MANTENIMIENTO);
+        activoRepository.save(activo);
+
+        historialService.registrar(
+                activo,
+                anterior,
+                ENUM_ESTATUS_ACTIVO.MANTENIMIENTO.name(),
+                "Solicitud de baja cancelada por administrador",
+                actor
+        );
+
+        BeanResguardo saved = resguardoRepository.save(resguardo);
+        return toResponse(saved);
     }
 
     private BeanUsuario getActorOrThrow(String correoAutenticado) {

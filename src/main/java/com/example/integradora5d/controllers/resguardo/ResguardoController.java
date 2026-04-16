@@ -10,7 +10,15 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -69,7 +77,15 @@ public class ResguardoController {
         return ResponseEntity.noContent().build();
     }
 
-    // MÓVIL - Verificar QR (devuelve el resguardo pendiente)
+    @PutMapping("/{id}/cancelar-baja")
+    public ResponseEntity<ResguardoResponseDTO> cancelarBaja(@PathVariable Long id, Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
+        }
+        return ResponseEntity.ok(resguardoService.cancelarBaja(id, principal.getName()));
+    }
+
+    // MOVIL - Verificar QR (devuelve el resguardo pendiente)
     @GetMapping("/verificar/{activoId}")
     public ResponseEntity<ResguardoResponseDTO> verificarQR(@PathVariable Long activoId, Principal principal) {
         if (principal == null) {
@@ -78,7 +94,7 @@ public class ResguardoController {
         return ResponseEntity.ok(resguardoService.verificarQR(activoId, principal.getName()));
     }
 
-    // MÓVIL - Confirmar resguardo con checklist y fotos
+    // MOVIL - Confirmar resguardo con checklist y fotos
     @PostMapping(value = "/confirmar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResguardoResponseDTO> confirmar(
             @RequestPart("datos") @Valid ConfirmarResguardoDTO dto,
@@ -90,7 +106,7 @@ public class ResguardoController {
         return ResponseEntity.ok(resguardoService.confirmar(dto, fotos, principal.getName()));
     }
 
-    // MÓVIL - Devolución con fotos obligatorias
+    // MOVIL - Devolucion con fotos obligatorias
     @PostMapping(value = "/devolver", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResguardoResponseDTO> devolver(
             @RequestPart("datos") @Valid DevolucionDTO dto,
