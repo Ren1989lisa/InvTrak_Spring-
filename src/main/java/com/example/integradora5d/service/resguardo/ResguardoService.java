@@ -84,18 +84,18 @@ public class ResguardoService {
     @Transactional
     public ResguardoResponseDTO asignar(CreateResguardoDTO dto) {
         BeanActivo activo = activoRepository.findById(dto.getActivoId())
-                .orElseThrow(() -> new RuntimeException("Activo no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activo no encontrado"));
 
         if (activo.getEstatus() != ENUM_ESTATUS_ACTIVO.DISPONIBLE) {
-            throw new RuntimeException("El activo no está disponible");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El activo no est\u00e1 disponible");
         }
 
         if (activo.getEstatus() == ENUM_ESTATUS_ACTIVO.BAJA) {
-            throw new RuntimeException("El activo está dado de baja y no puede asignarse");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El activo est\u00e1 dado de baja y no puede asignarse");
         }
 
         BeanUsuario usuario = usuarioRepository.findById(dto.getUsuarioId())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         BeanResguardo resguardo = new BeanResguardo();
         resguardo.setActivo(activo);
@@ -126,14 +126,18 @@ public class ResguardoService {
         if (isAdmin(actor)) {
             resguardo = resguardoRepository
                     .findTopByActivo_IdActivoAndConfirmadoFalseOrderByIdResguardoDesc(activoId)
-                    .orElseThrow(() -> new RuntimeException("No tienes un resguardo pendiente para este activo"));
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "No existe un resguardo pendiente para este activo"));
         } else {
             resguardo = resguardoRepository
                     .findTopByActivo_IdActivoAndUsuario_IdUsuarioAndConfirmadoFalseOrderByIdResguardoDesc(
                             activoId,
                             actor.getIdUsuario()
                     )
-                    .orElseThrow(() -> new RuntimeException("No tienes un resguardo pendiente para este activo"));
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Este bien no est\u00e1 asignado a tu cuenta o ya fue confirmado"));
         }
 
         return toResponse(resguardo);
@@ -146,11 +150,11 @@ public class ResguardoService {
 
         BeanUsuario actor = getActorOrThrow(correoAutenticado);
         BeanResguardo resguardo = resguardoRepository.findById(dto.getResguardoId())
-                .orElseThrow(() -> new RuntimeException("Resguardo no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
         assertTitularOAdmin(resguardo, actor);
 
         if (Boolean.TRUE.equals(resguardo.getConfirmado())) {
-            throw new RuntimeException("Este resguardo ya fue confirmado");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este resguardo ya fue confirmado");
         }
 
         BeanChecklist checklist = new BeanChecklist();
@@ -189,15 +193,15 @@ public class ResguardoService {
         BeanUsuario actor = getActorOrThrow(correoAutenticado);
 
         if (fotos == null || fotos.isEmpty()) {
-            throw new RuntimeException("Debes adjuntar al menos una foto para la devolución");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes adjuntar al menos una foto para la devoluci\u00f3n");
         }
 
         BeanResguardo resguardo = resguardoRepository.findById(dto.getResguardoId())
-                .orElseThrow(() -> new RuntimeException("Resguardo no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
         assertTitularOAdmin(resguardo, actor);
 
         if (!Boolean.TRUE.equals(resguardo.getConfirmado())) {
-            throw new RuntimeException("Este resguardo no ha sido confirmado");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este resguardo no ha sido confirmado");
         }
 
         guardarFotos(fotos, resguardo, ENUM_TIPO_EVIDENCIA.DEVOLUCION);
