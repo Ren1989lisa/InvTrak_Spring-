@@ -54,12 +54,18 @@ public class UsuarioService {
     }
 
     private String generarNumeroEmpleado(String curp, Long rolId) {
-        long count = usuarioRepository.countByRolId(rolId);
-        String consecutivo = String.format("%03d", count + 1);
+        long consecutivo = usuarioRepository.countByRolId(rolId) + 1;
         String prefijo = (curp != null && curp.length() >= 2)
-                ? curp.substring(curp.length() - 2)
+                ? curp.substring(curp.length() - 2).toUpperCase()
                 : "XX";
-        return prefijo + consecutivo;
+
+        String candidato = prefijo + String.format("%03d", consecutivo);
+        while (usuarioRepository.existsByNumeroEmpleado(candidato)) {
+            consecutivo++;
+            candidato = prefijo + String.format("%03d", consecutivo);
+        }
+
+        return candidato;
     }
 
     private BeanUsuario getUsuarioOr404(Long id) {
@@ -210,7 +216,7 @@ public class UsuarioService {
         String correo = sanitizeRequired(dto.getCorreo(), "El correo es obligatorio");
         LocalDate fechaNacimiento = dto.getFechaNacimiento();
         String curp = sanitizeCurp(dto.getCurp());
-        String numeroEmpleado = sanitizeRequired(dto.getNumeroEmpleado(), "El numero de empleado es obligatorio");
+        String numeroEmpleado = usuario.getNumeroEmpleado();
         String area = sanitizeRequired(dto.getArea(), "El area es obligatoria");
         Long rolId = dto.getRolId();
 
@@ -220,15 +226,18 @@ public class UsuarioService {
         if (fechaNacimiento.isAfter(LocalDate.now())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La fecha de nacimiento no puede ser futura");
         }
+        if (fechaNacimiento.isAfter(LocalDate.now().minusYears(18))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario debe tener al menos 18 años");
+        }
+        if (fechaNacimiento.isBefore(LocalDate.now().minusYears(100))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La fecha de nacimiento no es válida");
+        }
         if (rolId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rol es obligatorio");
         }
 
         if (usuarioRepository.existsByCorreoAndIdUsuarioNot(correo, usuario.getIdUsuario())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya esta registrado");
-        }
-        if (usuarioRepository.existsByNumeroEmpleadoAndIdUsuarioNot(numeroEmpleado, usuario.getIdUsuario())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "El numero de empleado ya esta registrado");
         }
         if (usuarioRepository.existsByCurpAndIdUsuarioNot(curp, usuario.getIdUsuario())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La CURP ya esta registrada");
