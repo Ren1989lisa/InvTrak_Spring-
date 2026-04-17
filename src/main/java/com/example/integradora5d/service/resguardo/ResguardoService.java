@@ -32,6 +32,8 @@ import com.example.integradora5d.models.usuario.UsuarioRepository;
 import com.example.integradora5d.service.historial_activo.HistorialService;
 import com.example.integradora5d.service.notificacion.NotificacionService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +46,7 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -320,6 +323,39 @@ public class ResguardoService {
     }
 
     @Transactional
+    public ResguardoResponseDTO solicitarDevolucion(Long id, String correoAutenticado) {
+        BeanUsuario actor = getActorOrThrow(correoAutenticado);
+        BeanResguardo resguardo = resguardoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resguardo no encontrado"));
+
+        assertTitularOAdmin(resguardo, actor);
+
+        if (!Boolean.TRUE.equals(resguardo.getConfirmado())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El resguardo no ha sido confirmado");
+        }
+
+        BeanActivo activo = resguardo.getActivo();
+        if (activo == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resguardo sin activo asociado");
+        }
+
+        String anterior = activo.getEstatus() != null ? activo.getEstatus().name() : "RESGUARDADO";
+        activo.setEstatus(ENUM_ESTATUS_ACTIVO.DEVOLUCION);
+        activoRepository.save(activo);
+
+        historialService.registrar(
+                activo,
+                anterior,
+                ENUM_ESTATUS_ACTIVO.DEVOLUCION.name(),
+                "Solicitud de devolución desde app móvil",
+                actor
+        );
+
+        BeanResguardo saved = resguardoRepository.save(resguardo);
+        return toResponse(saved);
+    }
+
+    @Transactional
     public ResguardoResponseDTO cancelarBaja(Long id, String correoAutenticado) {
         BeanUsuario actor = getActorOrThrow(correoAutenticado);
         if (!isAdmin(actor)) {
@@ -378,8 +414,52 @@ public class ResguardoService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public Map<String, String> confirmarPorQr(Long idActivo) {
+        BeanUsuario usuarioAutenticado = getUsuarioAutenticado();
+
+        BeanActivo activo = activoRepository.findById(idActivo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activo no encontrado"));
+
+        if (resguardoRepository
+                .findTopByUsuario_IdUsuarioAndActivo_IdActivoAndConfirmadoTrueOrderByIdResguardoDesc(
+                        usuarioAutenticado.getIdUsuario(),
+                        idActivo
+                )
+                .isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Este bien ya fue confirmado previamente");
+        }
+
+        BeanResguardo resguardoPendiente = resguardoRepository
+                .findTopByUsuario_IdUsuarioAndActivo_IdActivoAndConfirmadoFalseOrderByIdResguardoDesc(
+                        usuarioAutenticado.getIdUsuario(),
+                        idActivo
+                )
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Ese bien no fue asignado a este usuario"));
+
+        resguardoPendiente.setConfirmado(true);
+        activo.setEstatus(ENUM_ESTATUS_ACTIVO.RESGUARDADO);
+
+        resguardoRepository.save(resguardoPendiente);
+        activoRepository.save(activo);
+
+        return Map.of("message", "Bien resguardado correctamente");
+    }
+
     private BeanUsuario getActorOrThrow(String correoAutenticado) {
-        return usuarioRepository.findByCorreo(correoAutenticado)
+        return usuarioRepository.findByCorreoIgnoreCase(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+    }
+
+    private BeanUsuario getUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
+        }
+
+        return usuarioRepository.findByCorreoIgnoreCase(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
     }
 

@@ -23,4 +23,17 @@ public interface ActivoRepository extends JpaRepository<BeanActivo, Long> {
     List<Object[]> countGroupByEstatus();
 
     List<BeanActivo> findByEstatus(ENUM_ESTATUS_ACTIVO estatus);
+
+    // Activos resguardados por un usuario (confirmados y sin devolucion)
+    @Query("SELECT DISTINCT r.activo FROM BeanResguardo r " +
+           "WHERE r.usuario.idUsuario = :usuarioId " +
+           "AND r.confirmado = true " +
+           "AND r.fechaDevolucion IS NULL")
+    List<BeanActivo> findActivosResguardadosByUsuario(Long usuarioId);
+
+    // Activos en mantenimiento asignados a un tecnico
+    @Query("SELECT DISTINCT m.reporte.activo FROM BeanMantenimiento m " +
+           "WHERE m.tecnico.idUsuario = :tecnicoId " +
+           "AND m.estatus IN ('PENDIENTE', 'EN_PROCESO')")
+    List<BeanActivo> findActivosEnMantenimientoByTecnico(Long tecnicoId);
 }

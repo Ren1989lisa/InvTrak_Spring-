@@ -11,6 +11,8 @@ import com.example.integradora5d.models.campus.BeanCampus;
 import com.example.integradora5d.models.edificio.BeanEdificio;
 import com.example.integradora5d.models.producto.BeanProducto;
 import com.example.integradora5d.models.producto.ProductoRepository;
+import com.example.integradora5d.models.usuario.BeanUsuario;
+import com.example.integradora5d.models.usuario.UsuarioRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +27,16 @@ public class ActivoService {
     private final ActivoRepository activoRepository;
     private final ProductoRepository productoRepository;
     private final AulaRepository aulaRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public ActivoService(ActivoRepository activoRepository,
                          ProductoRepository productoRepository,
-                         AulaRepository aulaRepository) {
+                         AulaRepository aulaRepository,
+                         UsuarioRepository usuarioRepository) {
         this.activoRepository = activoRepository;
         this.productoRepository = productoRepository;
         this.aulaRepository = aulaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Transactional
@@ -61,7 +66,50 @@ public class ActivoService {
 
     @Transactional(readOnly = true)
     public List<BeanActivo> getAll() {
-        return activoRepository.findAll();
+        List<BeanActivo> activos = activoRepository.findAll();
+        activos.forEach(this::initializeLazyRelations);
+        return activos;
+    }
+
+    @Transactional(readOnly = true)
+    public List<BeanActivo> getMisActivos(String correoAutenticado) {
+        BeanUsuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+
+        String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombre() : "";
+
+        List<BeanActivo> activos;
+        if ("ADMINISTRADOR".equalsIgnoreCase(rolNombre)) {
+            activos = activoRepository.findAll();
+        } else if ("TECNICO".equalsIgnoreCase(rolNombre)) {
+            activos = activoRepository.findActivosEnMantenimientoByTecnico(usuario.getIdUsuario());
+        } else {
+            activos = activoRepository.findActivosResguardadosByUsuario(usuario.getIdUsuario());
+        }
+
+        activos.forEach(this::initializeLazyRelations);
+        return activos;
+    }
+
+    private void initializeLazyRelations(BeanActivo a) {
+        if (a.getAula() != null) {
+            a.getAula().getNombre();
+            if (a.getAula().getEdificio() != null) {
+                a.getAula().getEdificio().getNombre();
+                if (a.getAula().getEdificio().getCampus() != null) {
+                    a.getAula().getEdificio().getCampus().getNombre();
+                }
+            }
+        }
+        if (a.getProducto() != null) {
+            a.getProducto().getNombre();
+            if (a.getProducto().getModelo() != null) {
+                a.getProducto().getModelo().getNombre();
+                if (a.getProducto().getModelo().getMarca() != null) {
+                    a.getProducto().getModelo().getMarca().getNombre();
+                }
+            }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -69,8 +117,27 @@ public class ActivoService {
         if (id == null || id <= 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Activo no encontrado");
         }
-        return activoRepository.findById(id)
+        BeanActivo a = activoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activo no encontrado"));
+        if (a.getAula() != null) {
+            a.getAula().getNombre();
+            if (a.getAula().getEdificio() != null) {
+                a.getAula().getEdificio().getNombre();
+                if (a.getAula().getEdificio().getCampus() != null) {
+                    a.getAula().getEdificio().getCampus().getNombre();
+                }
+            }
+        }
+        if (a.getProducto() != null) {
+            a.getProducto().getNombre();
+            if (a.getProducto().getModelo() != null) {
+                a.getProducto().getModelo().getNombre();
+                if (a.getProducto().getModelo().getMarca() != null) {
+                    a.getProducto().getModelo().getMarca().getNombre();
+                }
+            }
+        }
+        return a;
     }
 
     private String sanitizeNumeroSerie(String numeroSerie) {

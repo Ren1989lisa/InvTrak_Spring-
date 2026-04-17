@@ -6,11 +6,11 @@ import com.example.integradora5d.dto.auth.ResetPasswordDTO;
 import com.example.integradora5d.dto.usuario.ForgotPasswordDTO;
 import com.example.integradora5d.service.auth.AuthService;
 import com.example.integradora5d.service.usuario.UsuarioService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -39,8 +39,14 @@ public class AuthController {
 
     @PatchMapping("/dispositivo-token")
     public ResponseEntity<Void> registrarToken(@Valid @RequestBody Map<String, String> body,
-                                               @AuthenticationPrincipal UserDetails userDetails) {
-        usuarioService.guardarTokenDispositivo(userDetails.getUsername(), body.get("token"));
+                                               Principal principal) {
+        if (principal == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                    "No autenticado"
+            );
+        }
+        usuarioService.guardarTokenDispositivo(principal.getName(), body.get("token"));
         return ResponseEntity.ok().build();
     }
 

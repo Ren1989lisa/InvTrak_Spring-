@@ -1,11 +1,11 @@
 package com.example.integradora5d.security;
 
-import com.example.integradora5d.error.errorTypes.CustomNotFoundException;
 import com.example.integradora5d.models.usuario.BeanUsuario;
 import com.example.integradora5d.models.usuario.UsuarioRepository;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,12 +19,17 @@ public class ApplicationUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) {
+        String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
 
-        BeanUsuario usuario = usuarioRepository.findByCorreo(email)
-                .orElseThrow(() -> new CustomNotFoundException("Usuario no encontrado: " + email));
+        BeanUsuario usuario = usuarioRepository.findByCorreoIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
         if (usuario.getRol() == null) {
-            throw new CustomNotFoundException("Usuario sin rol asignado: " + email);
+            throw new UsernameNotFoundException("Usuario sin rol asignado");
+        }
+
+        if (usuario.getPassword() == null || usuario.getPassword().isBlank()) {
+            throw new UsernameNotFoundException("Usuario sin credenciales válidas");
         }
 
         return User.builder()

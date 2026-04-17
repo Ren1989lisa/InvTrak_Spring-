@@ -4,16 +4,26 @@ import com.example.integradora5d.dto.reporte_danio.CreateReporteDTO;
 import com.example.integradora5d.models.activo.ActivoRepository;
 import com.example.integradora5d.models.activo.BeanActivo;
 import com.example.integradora5d.models.activo.ENUM_ESTATUS_ACTIVO;
-import com.example.integradora5d.models.evidencia.*;
+import com.example.integradora5d.models.evidencia.BeanEvidencia;
+import com.example.integradora5d.models.evidencia.ENUM_TIPO_ARCHIVO;
+import com.example.integradora5d.models.evidencia.ENUM_TIPO_EVIDENCIA;
+import com.example.integradora5d.models.evidencia.EvidenciaRepository;
 import com.example.integradora5d.models.prioridad.BeanPrioridad;
 import com.example.integradora5d.models.prioridad.PrioridadRepository;
-import com.example.integradora5d.models.reporte_danio.*;
+import com.example.integradora5d.models.reporte_danio.BeanReporte;
+import com.example.integradora5d.models.reporte_danio.ENUM_REPORTEDANIO;
+import com.example.integradora5d.models.reporte_danio.ReporteRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,7 +37,6 @@ public class ReporteService {
     private final PrioridadRepository prioridadRepository;
     private final EvidenciaRepository evidenciaRepository;
 
-    // Directorio de subida (Ruta relativa a la raíz del proyecto)
     private static final String UPLOAD_DIR = "uploads/reportes/";
 
     public ReporteService(ReporteRepository reporteRepository,
@@ -53,30 +62,29 @@ public class ReporteService {
     @Transactional(readOnly = true)
     public BeanReporte getById(Long reporteId) {
         return reporteRepository.findById(reporteId)
-                .orElseThrow(() -> new RuntimeException("Reporte no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));
     }
 
     @Transactional(rollbackFor = Exception.class)
     public BeanReporte create(CreateReporteDTO dto, List<MultipartFile> archivos) throws IOException {
-
-        // 1. VALIDACIÓN: Obligatorio al menos una imagen
         if (archivos == null || archivos.isEmpty() || archivos.get(0).isEmpty()) {
-            throw new RuntimeException("Es obligatorio subir al menos una evidencia fotográfica.");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Es obligatorio subir al menos una evidencia fotografica."
+            );
         }
 
-        // 2. Verificar existencia de dependencias
         BeanActivo activo = activoRepository.findById(dto.getActivoId())
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
                         "Activo con ID " + dto.getActivoId() + " no encontrado"
                 ));
-        /* CAMBIAR ESTATUS DEL ACTIVO */
+
+        BeanPrioridad prioridad = resolverPrioridad(dto.getPrioridadId());
+
         activo.setEstatus(ENUM_ESTATUS_ACTIVO.REPORTADO);
         activoRepository.save(activo);
 
-        BeanPrioridad prioridad = prioridadRepository.findById(dto.getPrioridadId())
-                .orElseThrow(() -> new RuntimeException("Prioridad con ID " + dto.getPrioridadId() + " no encontrada"));
-
-        // 3. Crear el reporte
         BeanReporte reporte = new BeanReporte();
         reporte.setActivo(activo);
         reporte.setTipo_falla(dto.getTipoFalla());
@@ -85,40 +93,57 @@ public class ReporteService {
         reporte.setFecha_reporte(LocalDate.now());
         reporte.setEstatus(ENUM_REPORTEDANIO.ABIERTO);
 
-        // Guardamos primero el reporte para tener el ID para las evidencias
         BeanReporte reporteGuardado = reporteRepository.save(reporte);
 
-        // 4. Manejo de Archivos
         Path rootPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
         if (!Files.exists(rootPath)) {
             Files.createDirectories(rootPath);
         }
 
         for (MultipartFile archivo : archivos) {
-            if (archivo.isEmpty()) continue;
+            if (archivo.isEmpty()) {
+                continue;
+            }
 
-            // Generar nombre único y limpiar el original
-            String nombreOriginal = archivo.getOriginalFilename() != null ? archivo.getOriginalFilename().replaceAll("\\s", "_") : "foto.jpg";
-            String nombreFinal = UUID.randomUUID().toString() + "_" + nombreOriginal;
+            String nombreOriginal = archivo.getOriginalFilename() != null
+                    ? archivo.getOriginalFilename().replaceAll("\\s", "_")
+                    : "foto.jpg";
+            String nombreFinal = UUID.randomUUID() + "_" + nombreOriginal;
 
             Path rutaDestino = rootPath.resolve(nombreFinal);
             Files.copy(archivo.getInputStream(), rutaDestino, StandardCopyOption.REPLACE_EXISTING);
 
-            // 5. Crear registro de Evidencia
             BeanEvidencia evidencia = new BeanEvidencia();
-            evidencia.setRuta_archivo(nombreFinal); // Guardamos solo el nombre para que sea portátil
+            evidencia.setRuta_archivo(nombreFinal);
             evidencia.setFecha_subida(LocalDateTime.now());
             evidencia.setTipo(ENUM_TIPO_EVIDENCIA.REPORTE);
 
-            // Determinar si es video o imagen
             String contentType = archivo.getContentType();
             evidencia.setTipo_archivo(contentType != null && contentType.startsWith("video")
-                    ? ENUM_TIPO_ARCHIVO.VIDEO : ENUM_TIPO_ARCHIVO.IMAGEN);
+                    ? ENUM_TIPO_ARCHIVO.VIDEO
+                    : ENUM_TIPO_ARCHIVO.IMAGEN);
 
             evidencia.setReporte(reporteGuardado);
             evidenciaRepository.save(evidencia);
         }
 
         return reporteGuardado;
+    }
+
+    private BeanPrioridad resolverPrioridad(Long prioridadId) {
+        if (prioridadId != null) {
+            return prioridadRepository.findById(prioridadId)
+                    .orElseGet(() -> prioridadRepository.findFirstPrioridad()
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.BAD_REQUEST,
+                                    "No hay prioridades registradas para crear el reporte"
+                            )));
+        }
+
+        return prioridadRepository.findFirstPrioridad()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "No hay prioridades registradas para crear el reporte"
+                ));
     }
 }

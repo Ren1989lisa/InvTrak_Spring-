@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -31,7 +32,6 @@ public class BeanUsuario {
     @Column(unique = true)
     private String correo;
 
-    // *
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
@@ -48,7 +48,11 @@ public class BeanUsuario {
 
     private Boolean primerAcceso = Boolean.TRUE;
 
-    private String tokenDispositivo; // token FCM del móvil
+    private String tokenDispositivo;
+
+    private Integer intentosFallidos = 0;
+
+    private LocalDateTime bloqueadoHasta;
 
     @ManyToOne
     @JoinColumn(name = "id_rol")

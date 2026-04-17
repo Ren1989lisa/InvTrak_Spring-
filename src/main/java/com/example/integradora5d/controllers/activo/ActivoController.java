@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -26,10 +27,16 @@ public class ActivoController {
         return ResponseEntity.ok(activoService.getAll());
     }
 
-    /** Ruta literal antes de /{id} para que no se interprete "disponibles" como id numérico. */
+    /** Ruta literal antes de /{id} para que no se interprete como id numérico. */
     @GetMapping("/disponibles")
     public ResponseEntity<List<BeanActivo>> getDisponibles() {
         return ResponseEntity.ok(activoService.getDisponibles());
+    }
+
+    /** Móvil: activos filtrados según el rol del usuario autenticado. */
+    @GetMapping("/mis-activos")
+    public ResponseEntity<List<BeanActivo>> getMisActivos(Principal principal) {
+        return ResponseEntity.ok(activoService.getMisActivos(principal.getName()));
     }
 
     @GetMapping("/{id}")

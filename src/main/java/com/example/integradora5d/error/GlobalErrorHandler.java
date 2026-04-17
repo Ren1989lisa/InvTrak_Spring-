@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +52,12 @@ public class GlobalErrorHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<String> handleNoResourceFoundException(NoResourceFoundException ex) {
         return new ResponseEntity<>("Recurso no encontrado", HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<String> handleResponseStatusException(ResponseStatusException ex) {
+        String message = ex.getReason() != null ? ex.getReason() : "Ocurrio un error";
+        return new ResponseEntity<>(message, ex.getStatusCode());
     }
 
     @ExceptionHandler(Exception.class)

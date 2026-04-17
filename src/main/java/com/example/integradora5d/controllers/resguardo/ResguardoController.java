@@ -77,6 +77,17 @@ public class ResguardoController {
         return ResponseEntity.noContent().build();
     }
 
+    // MOVIL - Solicitar devolución (cambia estatus activo a DEVOLUCION)
+    @PostMapping("/{id}/solicitar-devolucion")
+    public ResponseEntity<ResguardoResponseDTO> solicitarDevolucion(
+            @PathVariable Long id,
+            Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
+        }
+        return ResponseEntity.ok(resguardoService.solicitarDevolucion(id, principal.getName()));
+    }
+
     @PutMapping("/{id}/cancelar-baja")
     public ResponseEntity<ResguardoResponseDTO> cancelarBaja(@PathVariable Long id, Principal principal) {
         if (principal == null) {
