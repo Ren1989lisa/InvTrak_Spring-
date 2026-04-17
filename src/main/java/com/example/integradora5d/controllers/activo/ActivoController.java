@@ -1,5 +1,6 @@
 package com.example.integradora5d.controllers.activo;
 
+import com.example.integradora5d.dto.activo.ActivoResponseDTO;
 import com.example.integradora5d.dto.activo.CreateActivoDTO;
 import com.example.integradora5d.dto.activo.UpdateActivoDTO;
 import com.example.integradora5d.models.activo.BeanActivo;
@@ -22,29 +23,32 @@ public class ActivoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BeanActivo>> getAll() {
-        return ResponseEntity.ok(activoService.getAll());
+    public ResponseEntity<List<ActivoResponseDTO>> getAll() {
+        return ResponseEntity.ok(
+            activoService.getAll().stream().map(ActivoResponseDTO::from).toList()
+        );
     }
 
-    /** Ruta literal antes de /{id} para que no se interprete "disponibles" como id numérico. */
     @GetMapping("/disponibles")
-    public ResponseEntity<List<BeanActivo>> getDisponibles() {
-        return ResponseEntity.ok(activoService.getDisponibles());
+    public ResponseEntity<List<ActivoResponseDTO>> getDisponibles() {
+        return ResponseEntity.ok(
+            activoService.getDisponibles().stream().map(ActivoResponseDTO::from).toList()
+        );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BeanActivo> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(activoService.getById(id));
+    public ResponseEntity<ActivoResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(ActivoResponseDTO.from(activoService.getById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<BeanActivo> create(@Valid @RequestBody CreateActivoDTO dto) {
-        return new ResponseEntity<>(activoService.create(dto), HttpStatus.CREATED);
+    public ResponseEntity<ActivoResponseDTO> create(@Valid @RequestBody CreateActivoDTO dto) {
+        return new ResponseEntity<>(ActivoResponseDTO.from(activoService.create(dto)), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<BeanActivo> update(@PathVariable Long id,
+    public ResponseEntity<ActivoResponseDTO> update(@PathVariable Long id,
                                              @Valid @RequestBody UpdateActivoDTO dto) {
-        return ResponseEntity.ok(activoService.update(id, dto));
+        return ResponseEntity.ok(ActivoResponseDTO.from(activoService.update(id, dto)));
     }
 }

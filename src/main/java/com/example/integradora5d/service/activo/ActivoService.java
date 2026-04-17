@@ -61,7 +61,7 @@ public class ActivoService {
 
     @Transactional(readOnly = true)
     public List<BeanActivo> getAll() {
-        return activoRepository.findAll();
+        return activoRepository.findAllWithResguardos();
     }
 
     @Transactional(readOnly = true)
@@ -84,6 +84,12 @@ public class ActivoService {
     private void validateFechaAlta(LocalDate fechaAlta) {
         if (fechaAlta == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La fecha de alta es obligatoria");
+        }
+        if (fechaAlta.isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La fecha de alta no puede ser futura");
+        }
+        if (fechaAlta.isBefore(LocalDate.now().minusYears(100))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La fecha de alta no es válida");
         }
     }
 
@@ -165,6 +171,6 @@ public class ActivoService {
 
     @Transactional(readOnly = true)
     public List<BeanActivo> getDisponibles() {
-        return activoRepository.findByEstatus(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
+        return activoRepository.findByEstatusWithResguardos(ENUM_ESTATUS_ACTIVO.DISPONIBLE);
     }
 }
